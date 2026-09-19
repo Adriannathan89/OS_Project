@@ -2,7 +2,7 @@
 
 print_header() {
   echo "==================================="
-  echo "TUGAS 1 OS - KELOMPOK AXX"
+  echo "TUGAS 1 OS - KELOMPOK B08"
   echo "==================================="
 }
 
