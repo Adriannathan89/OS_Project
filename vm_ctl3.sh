@@ -65,16 +65,22 @@ vm_stop() {
   exit 1
 }
 
-# Dispatcher
 case "$1" in
+list)
+  list_vms
+  ;;
+info)
+  ;;
 start)
   vm_start "$2"
+  ;;
+snapshot)
   ;;
 stop)
   vm_stop "$2"
   ;;
 *)
-  echo "Usage: $0 {start|stop} <nama_vm>"
+  echo "Usage: $0 list"
   exit 1
   ;;
 esac
