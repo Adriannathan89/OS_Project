@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# sysinfo.sh - TUGAS 1 OS - KELOMPOK AXX
+#
+# Pembagian fungsi (JANGAN ubah urutan section ini saat merge,
+# supaya git bisa auto-merge tanpa conflict):
+#   [HISYAM] check_os_kernel, check_users, check_processes, check_virtualization
+#   [ADRIAN] send_to_c_connector (kirim metrik ke resource_check.c via pipe)
+#   [DIMAS]  check_extra_feature (fitur tambahan bebas)
+#   [FIQHI]  generate_report (gabung semua hasil ke sysinfo_report.txt)
+#
+# Aturan main untuk anggota lain:
+#   - Taruh fungsi kalian PERSIS di section masing-masing (cari komentar "TODO: <nama>")
+#   - Jangan edit fungsi milik orang lain
+#   - Semua fungsi hanya print ke stdout / set variabel global, TIDAK exit di tengah
+#     (biar main() di paling bawah yang atur alur keseluruhan)
+
+print_header() {
+  echo "==================================="
+  echo "TUGAS 1 OS - KELOMPOK B08"
+  echo "==================================="
+}
+
+# =====================================================
+# [HISYAM] Bagian 2 No.1 - sysinfo.sh dasar
+# =====================================================
+
+check_os_kernel() {
+  local os_name
+  os_name=$(grep -oP '(?<=^PRETTY_NAME=").*(?=")' /etc/os-release 2>/dev/null)
+  local kernel_version
+  kernel_version=$(uname -r)
+
+  if [ -z "$os_name" ]; then
+    os_name="Unknown OS"
+  fi
+
+  echo "OS/Kernel         : $os_name (Kernel $kernel_version)"
+
+  OS_INFO="$os_name"
+  KERNEL_INFO="$kernel_version"
+}
+
+check_users() {
+  local user_count
+  user_count=$(awk -F: '$3 >= 1000 && $3 < 65534 {count++} END {print count+0}' /etc/passwd)
+
+  echo "Akun pengguna     : $user_count akun"
+  USER_COUNT="$user_count"
+}
+
+check_processes() {
+  local process_count
+  process_count=$(ps -e --no-headers | wc -l)
+
+  echo "Proses berjalan   : $process_count proses"
+  PROCESS_COUNT="$process_count"
+}
+
+check_virtualization() {
+  local virt_type="none"
+
+  if command -v systemd-detect-virt &>/dev/null; then
+    virt_type=$(systemd-detect-virt 2>/dev/null)
+  fi
+
+  if [ "$virt_type" == "none" ] || [ -z "$virt_type" ]; then
+    if command -v dmidecode &>/dev/null; then
+      local product_name
+      product_name=$(sudo dmidecode -s system-product-name 2>/dev/null)
+      case "$product_name" in
+      *VirtualBox*) virt_type="oracle" ;;
+      *VMware*) virt_type="vmware" ;;
+      *KVM*) virt_type="kvm" ;;
+      esac
+    fi
+  fi
+
+  if [ "$virt_type" != "none" ] && [ -n "$virt_type" ]; then
+    echo "Virtualisasi      : Terdeteksi ($virt_type)"
+    VIRT_DETECTED="yes"
+    VIRT_TYPE="$virt_type"
+  else
+    echo "Virtualisasi      : Tidak terdeteksi (mesin fisik)"
+    VIRT_DETECTED="no"
+    VIRT_TYPE="none"
+  fi
+}
+
+# =====================================================
+# [ADRIAN] Bagian 2 No.2 - Konektor ke resource_check.c
+# =====================================================
+# TODO: Adrian
+# Fungsi ini wajib:
+#   1. Ambil 2 metrik varian kelompok (pakai df/free/ps/nproc)
+#   2. Kirim via pipe ke stdin resource_check.c (BUKAN argumen CLI)
+#      contoh: echo "$metrik1 $metrik2" | ./resource_check
+#   3. Tangkap hasil PASS/WARN/FAIL, simpan ke variabel global
+#      misal: METRIC1_STATUS, METRIC2_STATUS, METRIC1_VALUE, METRIC2_VALUE
+#
+# send_to_c_connector() {
+#     ...
+# }
+
+# =====================================================
+# [DIMAS] Bagian 2 No.3 - Fitur tambahan
+# =====================================================
+# TODO: Dimas
+# Bebas fiturnya (uptime, cek update, dll), yang penting:
+#   - print ke stdout dengan format konsisten
+#   - simpan hasil ke variabel global biar bisa dipakai reporter
+#     misal: EXTRA_FEATURE_NAME, EXTRA_FEATURE_VALUE
+#
+# check_extra_feature() {
+#     ...
+# }
+
+# =====================================================
+# [FIQHI] Bagian 2 No.4 - Task reporter
+# =====================================================
+# TODO: Fiqhi
+# Fungsi ini gabungkan SEMUA variabel global dari fungsi di atas
+# (OS_INFO, USER_COUNT, PROCESS_COUNT, VIRT_DETECTED, VIRT_TYPE,
+#  METRIC1_STATUS, METRIC2_STATUS, EXTRA_FEATURE_VALUE, dst)
+# jadi satu tabel, lalu simpan ke sysinfo_report.txt
+#
+# generate_report() {
+#     ...
+# }
+
+# =====================================================
+# MAIN - alur eksekusi keseluruhan (jangan diedit sembarangan,
+# diskusikan dulu di grup kalau perlu ubah urutan)
+# =====================================================
+
+main() {
+  print_header
+  echo "Mengecek sistem..."
+  check_os_kernel
+  check_users
+  check_processes
+  check_virtualization
+
+  echo ""
+  echo "Menghitung metrik varian kelompok..."
+  # send_to_c_connector   # <- uncomment setelah Adrian selesai
+
+  echo ""
+  echo "Fitur tambahan:"
+  # check_extra_feature   # <- uncomment setelah Dimas selesai
+
+  echo ""
+  echo "Menyimpan laporan ke sysinfo_report.txt..."
+  # generate_report       # <- uncomment setelah Fiqhi selesai
+  echo "Laporan berhasil disimpan."
+}
+
+main
