@@ -7,9 +7,15 @@ list_vms() {
 
     echo " Memindai daftar Virtual Machine..."
 
+    if ! VBoxManage list vms | grep -q .; then
+        echo " Belum ada Virtual Machine yang terdaftar."
+        return
+    fi
+
     echo " Daftar Virtual Machine:"
-    VboxManage list vms | awk -F'"' '{print $2}' | while read vm; do
-        echo " - $vm"
+    VBoxManage list vms | awk -F'"' '{print $2}' | while read vm; do
+    echo " - $vm"
+    
     done
 }
 
