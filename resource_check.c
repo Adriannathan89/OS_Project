@@ -4,6 +4,7 @@ int main() {
     double memory_usage = 0.0;
     double load_per_core = 0.0;
 
+    // Baca input dari stdin
     if(scanf("%lf %lf", &memory_usage, &load_per_core) != 2) {
         fprintf(stderr, "Error: Input seharusnya hanya 2 angka\n");
         return 1;
@@ -28,4 +29,5 @@ int main() {
     }
 
     printf("\n");
+    return 0;
 }
