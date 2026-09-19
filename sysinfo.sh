@@ -98,9 +98,24 @@ check_virtualization() {
 #   3. Tangkap hasil PASS/WARN/FAIL, simpan ke variabel global
 #      misal: METRIC1_STATUS, METRIC2_STATUS, METRIC1_VALUE, METRIC2_VALUE
 #
-# send_to_c_connector() {
-#     ...
-# }
+send_to_c_connector() {
+    # Ambil memory usage (dalam persentase)
+    local memory_usage=$(free -b | LC_NUMERIC=C awk '/^Mem:/ {printf "%.2f", ($3/$2)*100}')
+
+    # Ambil load average dan total cores
+    local load_average=$(awk '{print $1}' /proc/loadavg)
+    local total_cores=$(nproc)
+
+    # Hitung load per core (load average dibagi jumlah core)
+    load_per_core=$(LC_NUMERIC=C awk -v load="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load/cores}')
+
+    local hasil=$(echo "$memory_usage $load_per_core" | ./resource_check)
+
+    read -r status_memory status_load <<< "$hasil"
+
+    echo "  Memory Usage(%):             $memory_usage%  [$status_memory]" 
+    echo "  Load Average vs jumlah core: $load_per_core    [$status_load]"
+}
 
 # =====================================================
 # [DIMAS] Bagian 2 No.3 - Fitur tambahan
@@ -143,7 +158,7 @@ main() {
 
   echo ""
   echo "Menghitung metrik varian kelompok..."
-  # send_to_c_connector   # <- uncomment setelah Adrian selesai
+  send_to_c_connector   # <- uncomment setelah Adrian selesai
 
   echo ""
   echo "Fitur tambahan:"
