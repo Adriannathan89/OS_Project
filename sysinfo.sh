@@ -16,9 +16,12 @@
 #     (biar main() di paling bawah yang atur alur keseluruhan)
 
 print_header() {
-  echo "==================================="
-  echo "TUGAS 1 OS - KELOMPOK B08"
-  echo "==================================="
+  local title="TUGAS 1 OS - KELOMPOK B08"
+  local width=82
+
+  printf '%*s\n' "$width" '' | tr ' ' '='
+  printf "%*s\n" $(( (${#title} + width) / 2 )) "$title"
+  printf '%*s\n' "$width" '' | tr ' ' '='
 }
 
 # =====================================================
@@ -130,7 +133,7 @@ EXTRA_FEATURE_NAME="System Uptime"
 EXTRA_FEATURE_VALUE="UNKNOWN"
 
 check_extra_feature() {
-    EXTRA_FEATURE_VALUE=$(uptime -p)
+    EXTRA_FEATURE_VALUE=$(uptime -p | sed 's/^up //')
 
     echo "[EXTRA] $EXTRA_FEATURE_NAME: $EXTRA_FEATURE_VALUE"
 }
@@ -144,9 +147,44 @@ check_extra_feature() {
 #  METRIC1_STATUS, METRIC2_STATUS, EXTRA_FEATURE_VALUE, dst)
 # jadi satu tabel, lalu simpan ke sysinfo_report.txt
 #
-# generate_report() {
-#     ...
-# }
+generate_report() {
+  local w1=20
+  local w2=26
+  local w3=9
+  local w4=40
+
+  local memory_usage
+  memory_usage=$(free -b | LC_NUMERIC=C awk '/^Mem:/ {printf "%.2f", ($3/$2)*100}')
+
+  local virt_detail
+  virt_detail=$([ "$VIRT_DETECTED" = "yes" ] && echo "Terdeteksi: $VIRT_TYPE" || echo "Tidak terdeteksi")
+
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Check Category" "$w2" "Item" "$w3" "Status" "$w4" "Details"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "OS" "$w2" "$OS_INFO" "$w3" "PASS" "$w4" "$KERNEL_INFO"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Users" "$w2" "Regular Accounts" "$w3" "PASS" "$w4" "$USER_COUNT akun"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Process" "$w2" "Running" "$w3" "PASS" "$w4" "$PROCESS_COUNT proses berjalan"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Virtualization" "$w2" "Hypervisor" "$w3" "PASS" "$w4" "$virt_detail"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Memory" "$w2" "$memory_usage%" "$w3" "$status_memory" "$w4" "Memory usage"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Load/Core" "$w2" "$load_per_core" "$w3" "$status_load" "$w4" "Load average / jumlah core"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+
+  echo ""
+} > sysinfo_report.txt
 
 # =====================================================
 # MAIN - alur eksekusi keseluruhan (jangan diedit sembarangan,
@@ -167,11 +205,11 @@ main() {
 
   echo ""
   echo "Fitur tambahan:"
-  check_extra_feature   # <- uncomment setelah Dimas selesai
+  check_extra_feature
 
   echo ""
   echo "Menyimpan laporan ke sysinfo_report.txt..."
-  # generate_report       # <- uncomment setelah Fiqhi selesai
+  generate_report
   echo "Laporan berhasil disimpan."
 }
 
