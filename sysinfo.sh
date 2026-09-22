@@ -129,9 +129,14 @@ send_to_c_connector() {
 #   - simpan hasil ke variabel global biar bisa dipakai reporter
 #     misal: EXTRA_FEATURE_NAME, EXTRA_FEATURE_VALUE
 #
-# check_extra_feature() {
-#     ...
-# }
+EXTRA_FEATURE_NAME="System Uptime"
+EXTRA_FEATURE_VALUE="UNKNOWN"
+
+check_extra_feature() {
+    EXTRA_FEATURE_VALUE=$(uptime -p | sed 's/^up //')
+
+    echo "[EXTRA] $EXTRA_FEATURE_NAME: $EXTRA_FEATURE_VALUE"
+}
 
 # =====================================================
 # [FIQHI] Bagian 2 No.4 - Task reporter
@@ -200,7 +205,7 @@ main() {
 
   echo ""
   echo "Fitur tambahan:"
-  # check_extra_feature   # <- uncomment setelah Dimas selesai
+  check_extra_feature
 
   echo ""
   echo "Menyimpan laporan ke sysinfo_report.txt..."
