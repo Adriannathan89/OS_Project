@@ -1,19 +1,5 @@
 #!/bin/bash
-#
 # sysinfo.sh - TUGAS 1 OS - KELOMPOK AXX
-#
-# Pembagian fungsi (JANGAN ubah urutan section ini saat merge,
-# supaya git bisa auto-merge tanpa conflict):
-#   [HISYAM] check_os_kernel, check_users, check_processes, check_virtualization
-#   [ADRIAN] send_to_c_connector (kirim metrik ke resource_check.c via pipe)
-#   [DIMAS]  check_extra_feature (fitur tambahan bebas)
-#   [FIQHI]  generate_report (gabung semua hasil ke sysinfo_report.txt)
-#
-# Aturan main untuk anggota lain:
-#   - Taruh fungsi kalian PERSIS di section masing-masing (cari komentar "TODO: <nama>")
-#   - Jangan edit fungsi milik orang lain
-#   - Semua fungsi hanya print ke stdout / set variabel global, TIDAK exit di tengah
-#     (biar main() di paling bawah yang atur alur keseluruhan)
 
 print_header() {
   local title="TUGAS 1 OS - KELOMPOK B08"
@@ -84,14 +70,7 @@ check_virtualization() {
 # =====================================================
 # [ADRIAN] Bagian 2 No.2 - Konektor ke resource_check.c
 # =====================================================
-# TODO: Adrian
-# Fungsi ini wajib:
-#   1. Ambil 2 metrik varian kelompok (pakai df/free/ps/nproc)
-#   2. Kirim via pipe ke stdin resource_check.c (BUKAN argumen CLI)
-#      contoh: echo "$metrik1 $metrik2" | ./resource_check
-#   3. Tangkap hasil PASS/WARN/FAIL, simpan ke variabel global
-#      misal: METRIC1_STATUS, METRIC2_STATUS, METRIC1_VALUE, METRIC2_VALUE
-#
+
 send_to_c_connector() {
     # Ambil memory usage (dalam persentase)
     local memory_usage=$(free -b | LC_NUMERIC=C awk '/^Mem:/ {printf "%.2f", ($3/$2)*100}')
@@ -114,12 +93,7 @@ send_to_c_connector() {
 # =====================================================
 # [DIMAS] Bagian 2 No.3 - Fitur tambahan
 # =====================================================
-# TODO: Dimas
-# Bebas fiturnya (uptime, cek update, dll), yang penting:
-#   - print ke stdout dengan format konsisten
-#   - simpan hasil ke variabel global biar bisa dipakai reporter
-#     misal: EXTRA_FEATURE_NAME, EXTRA_FEATURE_VALUE
-#
+
 EXTRA_FEATURE_NAME="System Uptime"
 EXTRA_FEATURE_VALUE="UNKNOWN"
 
@@ -132,12 +106,7 @@ check_extra_feature() {
 # =====================================================
 # [FIQHI] Bagian 2 No.4 - Task reporter
 # =====================================================
-# TODO: Fiqhi
-# Fungsi ini gabungkan SEMUA variabel global dari fungsi di atas
-# (OS_INFO, USER_COUNT, PROCESS_COUNT, VIRT_DETECTED, VIRT_TYPE,
-#  METRIC1_STATUS, METRIC2_STATUS, EXTRA_FEATURE_VALUE, dst)
-# jadi satu tabel, lalu simpan ke sysinfo_report.txt
-#
+
 generate_report() {
   local w1=20
   local w2=26
@@ -178,8 +147,7 @@ generate_report() {
 } > sysinfo_report.txt
 
 # =====================================================
-# MAIN - alur eksekusi keseluruhan (jangan diedit sembarangan,
-# diskusikan dulu di grup kalau perlu ubah urutan)
+# MAIN 
 # =====================================================
 
 main() {

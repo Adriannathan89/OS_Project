@@ -62,18 +62,6 @@ vm_start() {
     exit 1
   fi
 
-  echo "Menunggu VM siap sepenuhnya (Guest Additions aktif)..."
-  local timeout=60
-  local elapsed=0
-  while [ $elapsed -lt $timeout ]; do
-    ga_status=$(VBoxManage guestproperty get "$vm_name" "/VirtualBox/GuestInfo/OS/LoggedInUsersList" 2>/dev/null)
-    if [[ "$ga_status" != *"No value set"* ]]; then
-      break
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-
   status=$(VBoxManage showvminfo "$vm_name" --machinereadable | grep '^VMState=' | cut -d'"' -f2)
   echo "VM '$vm_name' berhasil dinyalakan. Status: $status"
 }
@@ -83,31 +71,11 @@ vm_stop() {
   local vm_name="$1"
   print_header
 
-  # Cek dulu VM benar-benar running, bukan sedang starting/paused
-  status=$(VBoxManage showvminfo "$vm_name" --machinereadable | grep '^VMState=' | cut -d'"' -f2)
-  if [ "$status" != "running" ]; then
-    echo "VM '$vm_name' tidak dalam status running (status saat ini: $status)."
-    exit 1
-  fi
-
   echo "Mematikan VM '$vm_name' secara aman..."
   VBoxManage controlvm "$vm_name" acpipowerbutton
 
-  local timeout=60
-  local elapsed=0
-  while [ $elapsed -lt $timeout ]; do
-    status=$(VBoxManage showvminfo "$vm_name" --machinereadable | grep '^VMState=' | cut -d'"' -f2)
-    if [ "$status" == "poweroff" ]; then
-      echo "VM '$vm_name' berhasil dimatikan. Status: poweroff"
-      return 0
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-
-  echo "Peringatan: VM tidak merespon ACPI shutdown dalam $timeout detik."
-  echo "Kemungkinan penyebab: Guest Additions/acpid belum aktif, atau OS masih boot."
-  exit 1
+  status=$(VBoxManage showvminfo "$vm_name" --machinereadable | grep '^VMState=' | cut -d'"' -f2)
+  echo "VM '$vm_name' sedang dimatikan. Status saat ini: $status"
 }
 
 # create snapshot
