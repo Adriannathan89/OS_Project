@@ -71,6 +71,13 @@ vm_stop() {
   local vm_name="$1"
   print_header
 
+  # Cek dulu VM benar-benar running, bukan sedang starting/paused
+  status=$(VBoxManage showvminfo "$vm_name" --machinereadable | grep '^VMState=' | cut -d'"' -f2)
+  if [ "$status" != "running" ]; then
+    echo "VM '$vm_name' tidak dalam status running (status saat ini: $status)."
+    exit 1
+  fi
+
   echo "Mematikan VM '$vm_name' secara aman..."
   VBoxManage controlvm "$vm_name" acpipowerbutton
 
