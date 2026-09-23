@@ -30,7 +30,8 @@ print_header() {
 
 check_os_kernel() {
   local os_name
-  os_name=$(grep -oP '(?<=^PRETTY_NAME=").*(?=")' /etc/os-release 2>/dev/null)
+  os_name=$(grep -oE '^PRETTY_NAME="[^"]*"' /etc/os-release | cut -d'"' -f2)
+  
   local kernel_version
   kernel_version=$(uname -r)
 
@@ -46,6 +47,8 @@ check_os_kernel() {
 
 check_users() {
   local user_count
+
+  # Count user with 1000 <= UID < 65534
   user_count=$(awk -F: '$3 >= 1000 && $3 < 65534 {count++} END {print count+0}' /etc/passwd)
 
   echo "Akun pengguna     : $user_count akun"
@@ -65,18 +68,6 @@ check_virtualization() {
 
   if command -v systemd-detect-virt &>/dev/null; then
     virt_type=$(systemd-detect-virt 2>/dev/null)
-  fi
-
-  if [ "$virt_type" == "none" ] || [ -z "$virt_type" ]; then
-    if command -v dmidecode &>/dev/null; then
-      local product_name
-      product_name=$(sudo dmidecode -s system-product-name 2>/dev/null)
-      case "$product_name" in
-      *VirtualBox*) virt_type="oracle" ;;
-      *VMware*) virt_type="vmware" ;;
-      *KVM*) virt_type="kvm" ;;
-      esac
-    fi
   fi
 
   if [ "$virt_type" != "none" ] && [ -n "$virt_type" ]; then
