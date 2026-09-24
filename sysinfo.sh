@@ -80,7 +80,7 @@ send_to_c_connector() {
     local total_cores=$(nproc)
 
     # Hitung load per core (load average dibagi jumlah core)
-    load_per_core=$(LC_NUMERIC=C awk -v load="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load/cores}')
+    load_per_core=$(LC_NUMERIC=C awk -v load_averages="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load_averages/cores}')
 
     if [ -z "$memory_usage" ] || [ -z "$load_per_core" ]; then
       memory_usage=0
