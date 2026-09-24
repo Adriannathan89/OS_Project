@@ -82,6 +82,11 @@ send_to_c_connector() {
     # Hitung load per core (load average dibagi jumlah core)
     load_per_core=$(LC_NUMERIC=C awk -v load="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load/cores}')
 
+    if [ -z "$memory_usage" ] || [ -z "$load_per_core" ]; then
+        load_per_core=1
+        load_average=0
+    fi
+
     local hasil=$(echo "$memory_usage $load_per_core" | ./resource_check)
 
     read -r status_memory status_load <<< "$hasil"
