@@ -1,24 +1,13 @@
 #!/bin/bash
-#
 # sysinfo.sh - TUGAS 1 OS - KELOMPOK AXX
-#
-# Pembagian fungsi (JANGAN ubah urutan section ini saat merge,
-# supaya git bisa auto-merge tanpa conflict):
-#   [HISYAM] check_os_kernel, check_users, check_processes, check_virtualization
-#   [ADRIAN] send_to_c_connector (kirim metrik ke resource_check.c via pipe)
-#   [DIMAS]  check_extra_feature (fitur tambahan bebas)
-#   [FIQHI]  generate_report (gabung semua hasil ke sysinfo_report.txt)
-#
-# Aturan main untuk anggota lain:
-#   - Taruh fungsi kalian PERSIS di section masing-masing (cari komentar "TODO: <nama>")
-#   - Jangan edit fungsi milik orang lain
-#   - Semua fungsi hanya print ke stdout / set variabel global, TIDAK exit di tengah
-#     (biar main() di paling bawah yang atur alur keseluruhan)
 
 print_header() {
-  echo "==================================="
-  echo "TUGAS 1 OS - KELOMPOK B08"
-  echo "==================================="
+  local title="TUGAS 1 OS - KELOMPOK B08"
+  local width=82
+
+  printf '%*s\n' "$width" '' | tr ' ' '='
+  printf "%*s\n" $(( (${#title} + width) / 2 )) "$title"
+  printf '%*s\n' "$width" '' | tr ' ' '='
 }
 
 # =====================================================
@@ -27,7 +16,8 @@ print_header() {
 
 check_os_kernel() {
   local os_name
-  os_name=$(grep -oP '(?<=^PRETTY_NAME=").*(?=")' /etc/os-release 2>/dev/null)
+  os_name=$(grep -oE '^PRETTY_NAME="[^"]*"' /etc/os-release | cut -d'"' -f2)
+  
   local kernel_version
   kernel_version=$(uname -r)
 
@@ -43,6 +33,8 @@ check_os_kernel() {
 
 check_users() {
   local user_count
+
+  # Count user with 1000 <= UID < 65534
   user_count=$(awk -F: '$3 >= 1000 && $3 < 65534 {count++} END {print count+0}' /etc/passwd)
 
   echo "Akun pengguna     : $user_count akun"
@@ -64,18 +56,6 @@ check_virtualization() {
     virt_type=$(systemd-detect-virt 2>/dev/null)
   fi
 
-  if [ "$virt_type" == "none" ] || [ -z "$virt_type" ]; then
-    if command -v dmidecode &>/dev/null; then
-      local product_name
-      product_name=$(sudo dmidecode -s system-product-name 2>/dev/null)
-      case "$product_name" in
-      *VirtualBox*) virt_type="oracle" ;;
-      *VMware*) virt_type="vmware" ;;
-      *KVM*) virt_type="kvm" ;;
-      esac
-    fi
-  fi
-
   if [ "$virt_type" != "none" ] && [ -n "$virt_type" ]; then
     echo "Virtualisasi      : Terdeteksi ($virt_type)"
     VIRT_DETECTED="yes"
@@ -90,14 +70,7 @@ check_virtualization() {
 # =====================================================
 # [ADRIAN] Bagian 2 No.2 - Konektor ke resource_check.c
 # =====================================================
-# TODO: Adrian
-# Fungsi ini wajib:
-#   1. Ambil 2 metrik varian kelompok (pakai df/free/ps/nproc)
-#   2. Kirim via pipe ke stdin resource_check.c (BUKAN argumen CLI)
-#      contoh: echo "$metrik1 $metrik2" | ./resource_check
-#   3. Tangkap hasil PASS/WARN/FAIL, simpan ke variabel global
-#      misal: METRIC1_STATUS, METRIC2_STATUS, METRIC1_VALUE, METRIC2_VALUE
-#
+
 send_to_c_connector() {
     # Ambil memory usage (dalam persentase)
     local memory_usage=$(free -b | LC_NUMERIC=C awk '/^Mem:/ {printf "%.2f", ($3/$2)*100}')
@@ -107,7 +80,12 @@ send_to_c_connector() {
     local total_cores=$(nproc)
 
     # Hitung load per core (load average dibagi jumlah core)
-    load_per_core=$(LC_NUMERIC=C awk -v load="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load/cores}')
+    load_per_core=$(LC_NUMERIC=C awk -v load_averages="$load_average" -v cores="$total_cores" 'BEGIN {printf "%.2f", load_averages/cores}')
+
+    if [ -z "$memory_usage" ] || [ -z "$load_per_core" ]; then
+      memory_usage=0
+      load_per_core=0
+    fi
 
     local hasil=$(echo "$memory_usage $load_per_core" | ./resource_check)
 
@@ -120,17 +98,12 @@ send_to_c_connector() {
 # =====================================================
 # [DIMAS] Bagian 2 No.3 - Fitur tambahan
 # =====================================================
-# TODO: Dimas
-# Bebas fiturnya (uptime, cek update, dll), yang penting:
-#   - print ke stdout dengan format konsisten
-#   - simpan hasil ke variabel global biar bisa dipakai reporter
-#     misal: EXTRA_FEATURE_NAME, EXTRA_FEATURE_VALUE
-#
+
 EXTRA_FEATURE_NAME="System Uptime"
 EXTRA_FEATURE_VALUE="UNKNOWN"
 
 check_extra_feature() {
-    EXTRA_FEATURE_VALUE=$(uptime -p)
+    EXTRA_FEATURE_VALUE=$(uptime -p | sed 's/^up //')
 
     echo "[EXTRA] $EXTRA_FEATURE_NAME: $EXTRA_FEATURE_VALUE"
 }
@@ -138,19 +111,48 @@ check_extra_feature() {
 # =====================================================
 # [FIQHI] Bagian 2 No.4 - Task reporter
 # =====================================================
-# TODO: Fiqhi
-# Fungsi ini gabungkan SEMUA variabel global dari fungsi di atas
-# (OS_INFO, USER_COUNT, PROCESS_COUNT, VIRT_DETECTED, VIRT_TYPE,
-#  METRIC1_STATUS, METRIC2_STATUS, EXTRA_FEATURE_VALUE, dst)
-# jadi satu tabel, lalu simpan ke sysinfo_report.txt
-#
-# generate_report() {
-#     ...
-# }
+
+generate_report() {
+  local w1=20
+  local w2=26
+  local w3=9
+  local w4=40
+
+  local memory_usage
+  memory_usage=$(free -b | LC_NUMERIC=C awk '/^Mem:/ {printf "%.2f", ($3/$2)*100}')
+
+  local virt_detail
+  virt_detail=$([ "$VIRT_DETECTED" = "yes" ] && echo "Terdeteksi: $VIRT_TYPE" || echo "Tidak terdeteksi")
+
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Check Category" "$w2" "Item" "$w3" "Status" "$w4" "Details"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "OS" "$w2" "$OS_INFO" "$w3" "PASS" "$w4" "$KERNEL_INFO"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Users" "$w2" "Regular Accounts" "$w3" "PASS" "$w4" "$USER_COUNT akun"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Process" "$w2" "Running" "$w3" "PASS" "$w4" "$PROCESS_COUNT proses berjalan"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Virtualization" "$w2" "Hypervisor" "$w3" "PASS" "$w4" "$virt_detail"
+  
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Memory" "$w2" "$memory_usage%" "$w3" "$status_memory" "$w4" "Memory usage"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+  printf "| %-*s | %-*s | %-*s | %-*s |\n" "$w1" "Load/Core" "$w2" "$load_per_core" "$w3" "$status_load" "$w4" "Load average / jumlah core"
+
+  printf "+%*s+%*s+%*s+%*s+\n" $((w1+2)) "" $((w2+2)) "" $((w3+2)) "" $((w4+2)) "" | tr ' ' '-'
+
+  echo ""
+} > sysinfo_report.txt
 
 # =====================================================
-# MAIN - alur eksekusi keseluruhan (jangan diedit sembarangan,
-# diskusikan dulu di grup kalau perlu ubah urutan)
+# MAIN 
 # =====================================================
 
 main() {
@@ -167,11 +169,11 @@ main() {
 
   echo ""
   echo "Fitur tambahan:"
-  check_extra_feature   # <- uncomment setelah Dimas selesai
+  check_extra_feature
 
   echo ""
   echo "Menyimpan laporan ke sysinfo_report.txt..."
-  # generate_report       # <- uncomment setelah Fiqhi selesai
+  generate_report
   echo "Laporan berhasil disimpan."
 }
 
