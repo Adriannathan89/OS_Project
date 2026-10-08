@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 int main() {
     double memory_usage = 0.0;
@@ -10,11 +11,15 @@ int main() {
         return 1;
     }
 
+    bool is_failed = false;
+    bool is_warned = false;
     // hitung metric untuk memory usage dari stdin sysinfo.sh
     if(memory_usage >= 90.0) {
         printf("FAIL");
+        is_failed = true;
     } else if(memory_usage >= 75.0) {
         printf("WARN");
+        is_warned = true;
     } else {
         printf("PASS");
     }
@@ -22,12 +27,21 @@ int main() {
     // hitung metric untuk load avg vs jumlah core dari stdin sysinfo.sh
     if(load_per_core > 2.0) {
         printf(" FAIL");
+        is_failed = true;
     } else if(load_per_core > 1.0) {
         printf(" WARN");
+        is_warned = true;
     } else {
         printf(" PASS");
     }
 
     printf("\n");
-    return 0;
+
+    if(is_failed) {
+        return 2;
+    } else if(is_warned) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
