@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 
 #define LINE_WIDTH 73
 
@@ -11,9 +14,14 @@ struct process {
 };
 
 // use linked list
+struct node {
+    struct process *process;
+    struct node *next;
+};
+
 struct queue {
-    struct process **processes;
-    struct queue *next;
+    struct node *head;
+    struct node *tail;
 };
 
 struct context {
@@ -73,25 +81,84 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
 }
 
 static int queue_push(struct queue *q, struct process *p) {
-    struct queue *new_queue = (struct queue *)malloc(sizeof(struct queue));
-    if (!new_queue) return -1; // Memory allocation failed
+    struct node *n = (struct node *)malloc(sizeof(struct node));
+    if (!n) return -1;
 
-    new_queue->processes = &p;
-    new_queue->next = q->next;
-    q->next = new_queue;
-    return 0; // Success
+    n->process = p;
+    n->next = NULL;
+
+    if (q->tail == NULL) {
+        q->head = n;
+        q->tail = n;
+    } else {
+        q->tail->next = n;
+        q->tail = n;
+    }
+    return 0;
 }
 
-int main() {
+// Read a whole token so malformed or overflowing integers are rejected.
+static int read_int(int *value) {
+    char token[64];
+    size_t length = 0;
+    int c, too_long = 0;
+
+    do {
+        c = getchar();
+    } while (c != EOF && isspace(c));
+    if (c == EOF) return -1;
+
+    do {
+        if (length < sizeof(token) - 1) token[length++] = (char)c;
+        else too_long = 1;
+        c = getchar();
+    } while (c != EOF && !isspace(c));
+    token[length] = '\0';
+    if (too_long) return -1;
+
+    char *end;
+    errno = 0;
+    long parsed = strtol(token, &end, 10);
+    if (errno == ERANGE || end == token || end != token + length ||
+        parsed < INT_MIN || parsed > INT_MAX) return -1;
+    *value = (int)parsed;
+    return 0;
+}
+
+static void cleanup(struct process *p[], struct queue queue_list[], int allocated) {
+    for (int i = 0; i < 3; i++) {
+        struct node *node = queue_list[i].head;
+        while (node) {
+            struct node *next = node->next;
+            free(node);
+            node = next;
+        }
+        queue_list[i].head = NULL;
+        queue_list[i].tail = NULL;
+    }
+    for (int i = 0; i < allocated; i++) free(p[i]);
+    free(p);
+}
+
+int main(void) {
     int n, quantum_1, quantum_2;
 
     // Input jumlah proses dan quantum untuk masing-masing queue
     printf("Jumlah proses: ");
-    scanf("%d", &n);
+    if (read_int(&n) != 0 || n <= 0) {
+        printf("Jumlah proses harus berupa bilangan bulat lebih besar dari 0.\n");
+        return 1;
+    }
     printf("Quantum Q1 (RR > 0): ");
-    scanf("%d", &quantum_1);
+    if (read_int(&quantum_1) != 0) {
+        printf("Quantum Q1 harus berupa bilangan bulat.\n");
+        return 1;
+    }
     printf("Quantum Q2 (RR > 0): ");
-    scanf("%d", &quantum_2);
+    if (read_int(&quantum_2) != 0) {
+        printf("Quantum Q2 harus berupa bilangan bulat.\n");
+        return 1;
+    }
 
     // input validation
     if(quantum_1 <= 0 || quantum_2 <= 0) {
@@ -100,25 +167,47 @@ int main() {
     }
 
     // Allocate memory for process pointers
-    struct process *p[n];
+    struct process **p = (struct process **)calloc((size_t)n, sizeof(*p));
+    if (!p) {
+        printf("Gagal mengalokasikan memori untuk daftar proses.\n");
+        return 1;
+    }
+    int allocated = 0;
 
     // Allocate memory for queue processes
-    struct queue queue_list[3] = {0}; // Initialize queues for Q1, Q2, Q3
+    struct queue queue_list[3] = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}}; // Initialize queues for Q1, Q2, Q3
 
     struct context ctx = {quantum_1, quantum_2};
 
     for(int i = 0; i < n; i++) {
         int at, bt, queue_choice;
         printf("P%d - masukkan AT BT queue: ", i+1);
-        scanf("%d %d %d", &at, &bt, &queue_choice);
+        if (read_int(&at) != 0 || read_int(&bt) != 0 ||
+            read_int(&queue_choice) != 0) {
+            printf("AT, BT, dan queue harus berupa bilangan bulat lengkap.\n");
+            cleanup(p, queue_list, allocated);
+            return 1;
+        }
 
         if(at < 0 || bt <= 0) {
             printf("AT harus >= 0 dan BT harus > 0.\n");
+            cleanup(p, queue_list, allocated);
+            return 1;
+        }
+        if (queue_choice < 1 || queue_choice > 3) {
+            printf("Queue harus bernilai 1, 2, atau 3.\n");
+            cleanup(p, queue_list, allocated);
             return 1;
         }
 
         // Allocate memory for each process
-        p[i] = (struct process *)malloc(sizeof(struct process));
+        p[i] = (struct process *)malloc(sizeof(*p[i]));
+        if (!p[i]) {
+            printf("Gagal mengalokasikan memori untuk proses P%d.\n", i + 1);
+            cleanup(p, queue_list, allocated);
+            return 1;
+        }
+        allocated++;
         p[i]->pid = i + 1;
         p[i]->arrival_time = at;
         p[i]->burst_time = bt;
@@ -126,11 +215,14 @@ int main() {
 
         // Add process to the appropriate queue
         if(queue_push(&queue_list[queue_choice - 1], p[i]) != 0) {
-            printf("Gagal menambahkan proses ke queue 0.\n");
+            printf("Gagal menambahkan proses ke queue %d.\n", queue_choice);
+            cleanup(p, queue_list, allocated);
             return 1;
         }
     }
 
     process_input(p, ctx, n);
     print_process_queue(p, ctx, n);
+    cleanup(p, queue_list, allocated);
+    return 0;
 }
