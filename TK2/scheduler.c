@@ -125,7 +125,7 @@ static void simulate_fcfs(struct queue *q) {
         current_time += p->remaining_time;
         p->remaining_time = 0;
 
-        printf("P%d: %d -> $d\n", p->pid, start_time, current_time);
+        printf("P%d: %d -> %d\n", p->pid, start_time, current_time);
     }
 }
 
