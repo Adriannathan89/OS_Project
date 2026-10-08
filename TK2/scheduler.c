@@ -11,6 +11,7 @@ struct process {
     int arrival_time;
     int burst_time;
     int queue;
+    int remaining_time;
 };
 
 // use linked list
@@ -96,6 +97,38 @@ static int queue_push(struct queue *q, struct process *p) {
     }
     return 0;
 }
+
+static struct process *queue_pop(struct queue *q) {
+   if (q->head == NULL) return NULL;
+
+   struct node *n = q->head;
+   struct process *p = n->process;
+
+   q->head = q->head->next;
+   if (q->head == NULL) q->tail = NULL;
+
+   free(n);
+   return p;
+}
+
+static void simulate_fcfs(struct queue *q) {
+    int current_time = 0;
+
+    while (q->head != NULL) {
+        struct process *p = queue_pop(q);
+        
+        if (current_time < p->arrival_time) {
+            current_time = p->arrival_time;
+        }
+
+        int start_time = current_time;
+        current_time += p->remaining_time;
+        p->remaining_time = 0;
+
+        printf("P%d: %d -> $d\n", p->pid, start_time, current_time);
+    }
+}
+
 
 // Read a whole token so malformed or overflowing integers are rejected.
 static int read_int(int *value) {
@@ -212,6 +245,7 @@ int main(void) {
         p[i]->arrival_time = at;
         p[i]->burst_time = bt;
         p[i]->queue = queue_choice; // initial queue
+        p[i]->remaining_time = bt; // initial value
 
         // Add process to the appropriate queue
         if(queue_push(&queue_list[queue_choice - 1], p[i]) != 0) {
@@ -223,6 +257,7 @@ int main(void) {
 
     process_input(p, ctx, n);
     print_process_queue(p, ctx, n);
+    simulate_fcfs(&queue_list[2]);
     cleanup(p, queue_list, allocated);
     return 0;
 }
