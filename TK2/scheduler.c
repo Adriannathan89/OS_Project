@@ -5,10 +5,7 @@
 #include <limits.h>
 
 #define LINE_WIDTH 73
-<<<<<<< HEAD
-=======
 #define INF 1000000000   // [TAMBAHAN] limit / quantum "tak terbatas" (Q1 tanpa queue atas, Q3 FCFS)
->>>>>>> e6ecfcd (feat: rr function pertick)
 
 struct process {
     int pid;
@@ -16,12 +13,9 @@ struct process {
     int burst_time;
     int queue;
     int remaining_time;
-<<<<<<< HEAD
-=======
     int first_start;       // [TAMBAHAN] -1 kalau belum pernah jalan (buat RT)
     int completion_time;   // [TAMBAHAN] CT
     int quantum_left;      // [TAMBAHAN] sisa quantum saat proses lagi jalan (Q3 FCFS: INF)
->>>>>>> e6ecfcd (feat: rr function pertick)
 };
 
 // use linked list
@@ -90,23 +84,6 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
     }
     printf("\n");
 }
-<<<<<<< HEAD
-// Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin
-static int queue_push(struct queue *q, struct process *p) {
-    struct node *n = (struct node *)malloc(sizeof(struct node));
-    if (!n) return -1;
-
-    n->process = p;
-    n->next = NULL;
-
-    if (q->tail == NULL) {
-        q->head = n;
-        q->tail = n;
-    } else {
-        q->tail->next = n;
-        q->tail = n;
-    }
-=======
 
 // Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin
 static int queue_push(struct queue *q, struct process *p) {
@@ -131,50 +108,23 @@ static int queue_push_front(struct queue *q, struct process *p) {
     new_node->next = q->head;
     q->head = new_node;
     if (!q->tail) q->tail = new_node; // queue was empty
->>>>>>> e6ecfcd (feat: rr function pertick)
     return 0;
 }
 
 
 static struct process* queue_pop(struct queue *q) {
-<<<<<<< HEAD
-    if (q->head == NULL) return NULL; // empty queue 
-=======
     if (q->head == NULL) return NULL; // empty queue
->>>>>>> e6ecfcd (feat: rr function pertick)
 
     struct node *temp = q->head; // accessing first node in queue
     struct process *p = temp->process; // first node's process
 
     q->head = temp->next; // erasing first node
-<<<<<<< HEAD
-    if (q->head == NULL) q->tail = NULL; // queue jadi kosong
-=======
     if (q->head == NULL) q->tail = NULL;
->>>>>>> e6ecfcd (feat: rr function pertick)
     free(temp); // freeing memory
 
     return p;
 }
 
-<<<<<<< HEAD
-// Fungsi Engine Round Robin yang reusable untuk Q1 & Q2
-int execute_rr_step(struct queue *q, int quantum, int *current_time) {
-    struct process *p = queue_pop(q); // taking first node
-    if (!p) return 0; // no queue left
-
-    int exec_time = (p->remaining_time < quantum) ? p->remaining_time : quantum; // time allocate for the process
-
-    p->remaining_time -= exec_time; // sisa Burst Time
-    *current_time += exec_time; // execute
-
-    // Logic Quantum Expiry & Requeue ke belakang
-    if (p->remaining_time > 0) {
-        queue_push(q, p); // push back process
-    } 
-
-    return exec_time;
-=======
 // [TAMBAHAN] Hasil satu tick
 #define RR_RUNNING  0   // proses masih jalan, lanjut tick berikutnya
 #define RR_DONE     1   // proses selesai
@@ -206,7 +156,6 @@ int execute_rr_tick(struct process *p, int *current_time) {
     if (p->quantum_left == 0) return RR_QUANTUM; // kalo quantum habis, masih ada remanining time
 
     return RR_RUNNING; //quantum masih ada, remaining time masih ada
->>>>>>> e6ecfcd (feat: rr function pertick)
 }
 
 static void simulate_fcfs(struct queue *q) {
@@ -305,11 +254,7 @@ int main(void) {
     }
     int allocated = 0;
 
-<<<<<<< HEAD
-    // Allocate memory for queue processes
-=======
     // Allocate memory for queue process
->>>>>>> e6ecfcd (feat: rr function pertick)
     struct queue queue_list[3] = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}}; // Initialize queues for Q1, Q2, Q3
 
     struct context ctx = {quantum_1, quantum_2};
@@ -349,12 +294,9 @@ int main(void) {
         p[i]->remaining_time = bt; // [TAMBAHAN] Inisialisasi sisa BT
         p[i]->queue = queue_choice; // initial queue
         p[i]->remaining_time = bt; // initial value
-<<<<<<< HEAD
-=======
         p[i]->first_start = -1; // [TAMBAHAN] belum pernah jalan
         p[i]->completion_time = 0; // [TAMBAHAN]
         p[i]->quantum_left = 0; // [TAMBAHAN]
->>>>>>> e6ecfcd (feat: rr function pertick)
 
         // Add process to the appropriate queue
         if(queue_push(&queue_list[queue_choice - 1], p[i]) != 0) {
