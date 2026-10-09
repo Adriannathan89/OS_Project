@@ -1,0 +1,327 @@
+UNIT TEST / SKENARIO PENGUJIAN MULTILEVEL QUEUE
+==============================================
+I/O pada dokumen ini berarti input/output terminal sesuai scheduler.c.
+Tidak ada input durasi I/O perangkat atau status blocked.
+Berkas input .txt hanya berisi bilangan, sehingga bisa langsung dialihkan
+ke stdin. PID mengikuti urutan baris input, mulai dari P1.
+
+CARA MENJALANKAN (dari direktori TK2)
+  gcc -std=c11 -Wall -Wextra -Wpedantic scheduler.c -o /tmp/tk2-scheduler
+  /tmp/tk2-scheduler < tests/inputs/01_normal_q1.txt
+  Ulangi perintah kedua untuk setiap berkas input yang tercantum di bawah.
+  Untuk menjalankan semuanya:
+  for input in tests/inputs/*.txt; do
+    printf '\n%s\n' "$input"
+    /tmp/tk2-scheduler < "$input"
+  done
+
+FORMAT INPUT
+  Baris 1: jumlah proses (N)
+  Baris 2: quantum Q1
+  Baris 3: quantum Q2
+  N baris berikutnya: AT BT queue
+  Q1 dan Q2 menggunakan RR; Q3 menggunakan FCFS.
+  Prioritas diwakili queue, bukan kolom priority terpisah.
+
+ATURAN UNTUK HASIL MLQ YANG DIHARAPKAN
+  Q1 > Q2 > Q3; queue lebih tinggi mempreempt queue lebih rendah.
+  Proses tetap di queue awal (MLQ, bukan MLFQ).
+  Arrival bersamaan dimasukkan sesuai urutan PID.
+  RR yang habis quantum dimasukkan ke belakang pada akhir tick; arrival
+  pada waktu berikutnya masuk setelah proses yang direqueue tersebut.
+  Preemption dari queue atas mengembalikan proses ke depan queue asal.
+  Quantum dimulai ulang saat dipilih, sesuai rr_start() di scheduler.c.
+  Q3 menjalankan proses sampai selesai kecuali dipreempt queue atas.
+  Interval Gantt menggunakan [mulai, akhir); biaya context switch = 0.
+  Start = waktu pertama mendapat CPU; CT = completion time.
+  TAT = CT - AT; WT = TAT - BT; RT = Start - AT.
+
+BATAS IMPLEMENTASI DAN KRITERIA LULUS
+  main() saat ini mencetak konfigurasi seluruh proses, tetapi hanya
+  memanggil simulate_fcfs(&queue_list[2]). Dispatcher MLQ belum dipanggil.
+  Karena itu hasil MLQ di bawah adalah target pengujian, bukan klaim bahwa
+  scheduler.c sudah menghasilkan hasil tersebut. Q1/Q2 belum dijalankan.
+  Program juga belum mencetak tabel CT/TAT/WT/RT atau rata-ratanya.
+  Lulus penuh: semua proses dijadwalkan dan interval/angka cocok dengan
+  hasil yang diharapkan. Exit code 0 saja tidak cukup untuk lulus.
+  TC08 dapat diverifikasi melalui interval Q3 yang sudah dicetak program;
+  tabel metrik TC08 dihitung manual dari interval tersebut.
+
+DATA INPUT
+  Seluruh data dibuat khusus untuk pengujian ini. Perbandingan quantum
+  memakai kumpulan proses yang sama di TC01, TC02, TC03, sehingga hanya
+  quantum yang berubah. Lima kategori wajib dicakup oleh TC01-TC07;
+  TC08 merupakan tambahan khusus verifikasi manual.
+
+TC01: Kondisi normal, quantum Q1=Q2=1
+-----------------------------------------------------------------
+Input: tests/inputs/01_normal_q1.txt
+5
+1
+1
+0 5 1
+0 3 1
+1 4 2
+2 2 2
+3 3 3
+
+Gantt MLQ yang diharapkan:
+  0-1 P1 | 1-2 P2 | 2-3 P1 | 3-4 P2 | 4-5 P1 | 5-6 P2 | 6-8 P1 | 8-9 P3 | 9-10 P4 | 10-11 P3 | 11-12 P4 | 12-14 P3 | 14-17 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    5   1       0    8     8    3    0
+P2     0    3   1       1    6     6    3    1
+P3     1    4   2       8   14    13    9    7
+P4     2    2   2       9   12    10    8    7
+P5     3    3   3      14   17    14   11   11
+Rata-rata TAT / WT / RT: 10.20 / 6.80 / 5.20
+Interval yang benar-benar dicetak scheduler.c:
+  P5: 3 -> 6
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC02: Kondisi normal, quantum Q1=Q2=2
+-----------------------------------------------------------------
+Input: tests/inputs/02_normal_q2.txt
+5
+2
+2
+0 5 1
+0 3 1
+1 4 2
+2 2 2
+3 3 3
+
+Gantt MLQ yang diharapkan:
+  0-2 P1 | 2-4 P2 | 4-6 P1 | 6-7 P2 | 7-8 P1 | 8-10 P3 | 10-12 P4 | 12-14 P3 | 14-17 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    5   1       0    8     8    3    0
+P2     0    3   1       2    7     7    4    2
+P3     1    4   2       8   14    13    9    7
+P4     2    2   2      10   12    10    8    8
+P5     3    3   3      14   17    14   11   11
+Rata-rata TAT / WT / RT: 10.40 / 7.00 / 5.60
+Interval yang benar-benar dicetak scheduler.c:
+  P5: 3 -> 6
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC03: Kondisi normal, quantum Q1=Q2=4
+-----------------------------------------------------------------
+Input: tests/inputs/03_normal_q4.txt
+5
+4
+4
+0 5 1
+0 3 1
+1 4 2
+2 2 2
+3 3 3
+
+Gantt MLQ yang diharapkan:
+  0-4 P1 | 4-7 P2 | 7-8 P1 | 8-12 P3 | 12-14 P4 | 14-17 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    5   1       0    8     8    3    0
+P2     0    3   1       4    7     7    4    4
+P3     1    4   2       8   12    11    7    7
+P4     2    2   2      12   14    12   10   10
+P5     3    3   3      14   17    14   11   11
+Rata-rata TAT / WT / RT: 10.40 / 7.00 / 6.40
+Interval yang benar-benar dicetak scheduler.c:
+  P5: 3 -> 6
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC04: Arrival tersebar dan ready queue kosong
+-----------------------------------------------------------------
+Input: tests/inputs/04_arrival_idle.txt
+5
+2
+4
+2 2 3
+7 3 2
+8 2 1
+16 1 1
+20 2 3
+
+Gantt MLQ yang diharapkan:
+  0-2 IDLE | 2-4 P1 | 4-7 IDLE | 7-8 P2 | 8-10 P3 | 10-12 P2 | 12-16 IDLE | 16-17 P4 | 17-20 IDLE | 20-22 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     2    2   3       2    4     2    0    0
+P2     7    3   2       7   12     5    2    0
+P3     8    2   1       8   10     2    0    0
+P4    16    1   1      16   17     1    0    0
+P5    20    2   3      20   22     2    0    0
+Rata-rata TAT / WT / RT: 2.40 / 0.40 / 0.00
+Interval yang benar-benar dicetak scheduler.c:
+  P1: 2 -> 4
+  P5: 20 -> 22
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC05: Burst time berbeda signifikan (1 sampai 24)
+-----------------------------------------------------------------
+Input: tests/inputs/05_burst_timpang.txt
+5
+2
+4
+0 24 3
+0 1 1
+1 2 2
+2 17 2
+3 3 1
+
+Gantt MLQ yang diharapkan:
+  0-1 P2 | 1-3 P3 | 3-6 P5 | 6-23 P4 | 23-47 P1
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0   24   3      23   47    47   23   23
+P2     0    1   1       0    1     1    0    0
+P3     1    2   2       1    3     2    0    0
+P4     2   17   2       6   23    21    4    4
+P5     3    3   1       3    6     3    0    0
+Rata-rata TAT / WT / RT: 14.80 / 5.40 / 5.40
+Interval yang benar-benar dicetak scheduler.c:
+  P1: 0 -> 24
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC06: 12 proses dengan semua queue terisi
+-----------------------------------------------------------------
+Input: tests/inputs/06_banyak_proses.txt
+12
+2
+4
+0 4 3
+0 3 2
+0 2 1
+1 5 2
+2 1 1
+3 6 3
+4 4 1
+5 2 2
+6 3 3
+7 1 2
+8 2 1
+9 4 3
+
+Gantt MLQ yang diharapkan:
+  0-2 P3 | 2-3 P5 | 3-4 P2 | 4-8 P7 | 8-10 P11 | 10-12 P2 | 12-16 P4 | 16-18 P8 | 18-19 P10 | 19-20 P4 | 20-24 P1 | 24-30 P6 | 30-33 P9 | 33-37 P12
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    4   3      20   24    24   20   20
+P2     0    3   2       3   12    12    9    3
+P3     0    2   1       0    2     2    0    0
+P4     1    5   2      12   20    19   14   11
+P5     2    1   1       2    3     1    0    0
+P6     3    6   3      24   30    27   21   21
+P7     4    4   1       4    8     4    0    0
+P8     5    2   2      16   18    13   11   11
+P9     6    3   3      30   33    27   24   24
+P10    7    1   2      18   19    12   11   11
+P11    8    2   1       8   10     2    0    0
+P12    9    4   3      33   37    28   24   24
+Rata-rata TAT / WT / RT: 14.25 / 11.17 / 10.42
+Interval yang benar-benar dicetak scheduler.c:
+  P1: 0 -> 4
+  P6: 4 -> 10
+  P9: 10 -> 13
+  P12: 13 -> 17
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC07: AT, BT, prioritas sama; BT sangat kecil
+-----------------------------------------------------------------
+Input: tests/inputs/07_edge_case.txt
+5
+2
+4
+0 1 1
+0 1 1
+0 1 1
+0 1 1
+0 1 1
+
+Gantt MLQ yang diharapkan:
+  0-1 P1 | 1-2 P2 | 2-3 P3 | 3-4 P4 | 4-5 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    1   1       0    1     1    0    0
+P2     0    1   1       1    2     2    1    1
+P3     0    1   1       2    3     3    2    2
+P4     0    1   1       3    4     4    3    3
+P5     0    1   1       4    5     5    4    4
+Rata-rata TAT / WT / RT: 3.00 / 2.00 / 2.00
+Interval yang benar-benar dicetak scheduler.c:
+  Tidak ada interval proses.
+Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+
+TC08: Verifikasi manual Q3 (FCFS), termasuk idle
+-----------------------------------------------------------------
+Input: tests/inputs/08_manual_fcfs.txt
+5
+2
+4
+0 3 3
+1 2 3
+6 1 3
+6 4 3
+15 2 3
+
+Gantt MLQ yang diharapkan:
+  0-3 P1 | 3-5 P2 | 5-6 IDLE | 6-7 P3 | 7-11 P4 | 11-15 IDLE | 15-17 P5
+
+PID   AT   BT   Q   Start   CT   TAT   WT   RT
+P1     0    3   3       0    3     3    0    0
+P2     1    2   3       3    5     4    2    2
+P3     6    1   3       6    7     1    0    0
+P4     6    4   3       7   11     5    1    1
+P5    15    2   3      15   17     2    0    0
+Rata-rata TAT / WT / RT: 3.00 / 0.60 / 0.60
+Interval yang benar-benar dicetak scheduler.c:
+  P1: 0 -> 3
+  P2: 3 -> 5
+  P3: 6 -> 7
+  P4: 7 -> 11
+  P5: 15 -> 17
+Status verifikasi: interval FCFS cocok dengan hitungan manual.
+
+PERHITUNGAN MANUAL TC08 (UNTUK LAPORAN)
+=====================================
+Semua proses berada di Q3, sehingga FCFS dapat diverifikasi pada program
+saat ini. Tidak ada proses Q1/Q2 yang dapat melakukan preemption.
+
+1. P1 datang t=0, berjalan 0 sampai 3 (BT=3).
+2. P2 datang t=1, menunggu P1 selesai, berjalan 3 sampai 5 (BT=2).
+3. CPU idle 5 sampai 6 karena P3 dan P4 baru datang t=6.
+4. P3 dan P4 datang bersamaan. Urutan input P3 lebih dahulu, sehingga
+   P3 berjalan 6 sampai 7 (BT=1), lalu P4 berjalan 7 sampai 11 (BT=4).
+5. CPU idle 11 sampai 15; P5 berjalan 15 sampai 17 (BT=2).
+
+PID  CT  TAT = CT-AT    WT = TAT-BT    RT = Start-AT
+P1    3    3-0  = 3       3-3 = 0       0-0   = 0
+P2    5    5-1  = 4       4-2 = 2       3-1   = 2
+P3    7    7-6  = 1       1-1 = 0       6-6   = 0
+P4   11   11-6  = 5       5-4 = 1       7-6   = 1
+P5   17   17-15 = 2       2-2 = 0      15-15  = 0
+
+Rata-rata TAT = (3+4+1+5+2)/5 = 15/5 = 3.00
+Rata-rata WT  = (0+2+0+1+0)/5 =  3/5 = 0.60
+Rata-rata RT  = (0+2+0+1+0)/5 =  3/5 = 0.60
+Total BT = 12; total idle = 1+4 = 5; waktu selesai terakhir = 17.
+
+Bagian output interval program yang wajib identik:
+P1: 0 -> 3
+P2: 3 -> 5
+P3: 6 -> 7
+P4: 7 -> 11
+P5: 15 -> 17
+
+Output program saat ini menampilkan interval di atas, bukan metrik.
+CT diambil dari akhir interval, Start dari awal interval; TAT/WT/RT
+kemudian dihitung menggunakan rumus. Klaim bahwa program mencetak
+rata-rata metrik tersebut harus menunggu fitur output metrik tersedia.
+
+CATATAN ARRIVAL DAN EDGE CASE
+  TC04: target CPU idle 0-2, 4-7, 12-16, 17-20.
+  TC05: beban timpang, BT terkecil 1 dan terbesar 24; total BT = 47.
+  TC06: 12 proses, seluruh Q1/Q2/Q3 terisi; semua harus selesai sekali.
+  TC07: lima AT=0, BT=1, queue=1; target urutan P1,P2,P3,P4,P5.
+  BT harus positif; BT=0 bukan edge case valid menurut parser program.
