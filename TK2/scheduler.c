@@ -102,7 +102,7 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
 
 // Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin.
 static int queue_push(struct queue *q, struct process *p) {
-    struct node *new_node = malloc(sizeof(struct node)); // check memory allocation for push_back
+    struct node *new_node = (struct node *)malloc(sizeof(struct node)); // check memory allocation for push_back
     if (!new_node) return -1; // Memory allocation failed
 
     new_node->process = p;
@@ -115,7 +115,7 @@ static int queue_push(struct queue *q, struct process *p) {
 
 // Proses yang dipreempt kembali ke depan queue asal.
 static int queue_push_front(struct queue *q, struct process *p) {
-    struct node *new_node = malloc(sizeof(struct node));
+    struct node *new_node = (struct node *)malloc(sizeof(struct node));
     if (!new_node) return -1; // Memory allocation failed
 
     new_node->process = p;
@@ -285,6 +285,167 @@ static void free_mlq_result(struct mlq_result *result) {
     result->head = NULL;
     result->tail = NULL;
     result->higher_preemptions = 0;
+}
+
+/* ======================= METRICS AND REPORTING ======================= */
+
+static void print_gantt_chart(const struct mlq_result *result) {
+    const struct execution_segment *segment = result->head;
+
+    print_line('=');
+    printf("CPU EXECUTION TIMELINE (GANTT CHART)\n");
+    print_line('=');
+    while (segment) {
+        if (segment->pid == 0)
+            printf("| IDLE (%lld-%lld) ", segment->start, segment->end);
+        else
+            printf("| P%d (%lld-%lld) ", segment->pid, segment->start, segment->end);
+        segment = segment->next;
+    }
+    printf("|\n\n");
+}
+
+static void print_higher_queue_preemptions(const struct mlq_result *result) {
+    const struct execution_segment *segment = result->head;
+
+    print_line('=');
+    printf("HIGHER-QUEUE PREEMPTIONS\n");
+    print_line('=');
+    while (segment) {
+        if (segment->preempted_remaining > 0 && segment->next != NULL) {
+            const struct execution_segment *next = segment->next;
+            printf("t=%lld : P%d(Q%d) PREEMPTED (sisa BT=%d) -> P%d(Q%d)\n",
+                   segment->end, segment->pid, segment->queue,
+                   segment->preempted_remaining, next->pid, next->queue);
+        }
+        segment = segment->next;
+    }
+    printf("Total Preemption Antarqueue : %lld\n\n", result->higher_preemptions);
+}
+
+static void print_scheduling_table(struct process *p[], int n) {
+    print_line('=');
+    printf("SCHEDULING TABLE\n");
+    print_line('=');
+    printf("%-5s%6s%6s%6s%7s%7s%7s\n", "PID", "AT", "BT", "CT", "TAT", "WT", "RT");
+    print_line('-');
+    for (int i = 0; i < n; i++) {
+        int tat = p[i]->completion_time - p[i]->arrival_time;
+        int wt = tat - p[i]->burst_time;
+        int rt = p[i]->first_start - p[i]->arrival_time;
+        printf("P%-4d%6d%6d%6d%7d%7d%7d\n", p[i]->pid, p[i]->arrival_time,
+               p[i]->burst_time, p[i]->completion_time, tat, wt, rt);
+    }
+    print_line('=');
+    printf("\n");
+}
+
+static void print_scheduling_performance(struct process *p[], int n) {
+    double total_wt = 0.0;
+    double total_tat = 0.0;
+    double total_rt = 0.0;
+
+    for (int i = 0; i < n; i++) {
+        int tat = p[i]->completion_time - p[i]->arrival_time;
+        total_tat += tat;
+        total_wt += tat - p[i]->burst_time;
+        total_rt += p[i]->first_start - p[i]->arrival_time;
+    }
+
+    print_line('=');
+    printf("SCHEDULING PERFORMANCE\n");
+    print_line('=');
+    printf("Average Waiting Time    : %.2f\n", total_wt / n);
+    printf("Average Turnaround Time : %.2f\n", total_tat / n);
+    printf("Average Response Time   : %.2f\n\n", total_rt / n);
+}
+
+static void print_utilization_and_throughput(const struct mlq_result *result, int n) {
+    const struct execution_segment *segment = result->head;
+    long long busy_time = 0;
+    long long total_time = 0;
+
+    while (segment) {
+        if (segment->pid != 0) busy_time += segment->end - segment->start;
+        if (segment->end > total_time) total_time = segment->end;
+        segment = segment->next;
+    }
+
+    print_line('=');
+    printf("CPU UTILIZATION AND THROUGHPUT\n");
+    print_line('=');
+    printf("CPU Utilization : %.2f%%\n",
+           total_time ? (100.0 * (double)busy_time / (double)total_time) : 0.0);
+    printf("Throughput      : %.2f process/time unit\n\n",
+           total_time ? (double)n / (double)total_time : 0.0);
+}
+
+static void print_context_switch_information(const struct mlq_result *result) {
+    const struct execution_segment *segment = result->head;
+    int total = 0;
+    int per_queue[3] = {0, 0, 0};
+    int previous_pid = 0;
+    int previous_queue = 0;
+
+    while (segment) {
+        if (segment->pid != 0) {
+            if (previous_pid != 0 && previous_pid != segment->pid) {
+                total++;
+                if (previous_queue >= 1 && previous_queue <= 3)
+                    per_queue[previous_queue - 1]++;
+            }
+            previous_pid = segment->pid;
+            previous_queue = segment->queue;
+        } else {
+            previous_pid = 0;
+            previous_queue = 0;
+        }
+        segment = segment->next;
+    }
+
+    print_line('=');
+    printf("CONTEXT SWITCH INFORMATION\n");
+    print_line('=');
+    printf("Total Context Switch : %d\n", total);
+}
+
+static int is_final_segment(const struct execution_segment *segment,
+                            const struct process *p) {
+    return segment->pid == p->pid && segment->end == p->completion_time;
+}
+
+static void print_process_state_transitions(struct process *p[], int n,
+                                            const struct mlq_result *result) {
+    print_line('=');
+    printf("PROCESS STATE TRANSITIONS\n");
+    print_line('=');
+    for (int i = 0; i < n; i++) {
+        const struct execution_segment *segment = result->head;
+        printf("P%d : NEW -> READY (t=%d)", p[i]->pid, p[i]->arrival_time);
+        while (segment) {
+            if (segment->pid == p[i]->pid) {
+                printf(" -> RUNNING (t=%lld)", segment->start);
+                if (is_final_segment(segment, p[i]))
+                    printf(" -> TERMINATED (t=%lld)", segment->end);
+                else
+                    printf(" -> READY (t=%lld)", segment->end);
+            }
+            segment = segment->next;
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+static void print_final_report(struct process *p[], int n,
+                                 const struct mlq_result *result) {
+    print_gantt_chart(result);
+    print_higher_queue_preemptions(result);
+    print_scheduling_table(p, n);
+    print_scheduling_performance(p, n);
+    print_utilization_and_throughput(result, n);
+    print_context_switch_information(result);
+    print_process_state_transitions(p, n, result);
 }
 
 
@@ -465,7 +626,7 @@ int main(void) {
     }
 
     // Allocate memory for process pointers
-    struct process **p = calloc((size_t)n, sizeof(*p));
+    struct process **p = (struct process **)calloc((size_t)n, sizeof(*p));
     if (!p) {
         printf("Gagal mengalokasikan memori untuk daftar proses.\n");
         return 1;
@@ -499,7 +660,7 @@ int main(void) {
         }
 
         // Allocate memory for each process
-        p[i] = malloc(sizeof(*p[i]));
+        p[i] = (struct process *)malloc(sizeof(*p[i]));
         if (!p[i]) {
             printf("Gagal mengalokasikan memori untuk proses P%d.\n", i + 1);
             cleanup(p, queue_list, allocated);
@@ -520,9 +681,12 @@ int main(void) {
     print_process_queue(p, ctx, n);
     struct mlq_result result;
     int status = simulate_mlq(p, n, ctx, &result);
-    if (status != 0) printf("Simulasi gagal: alokasi memori atau waktu melebihi INT_MAX.\n");
+    if (status != 0) {
+        printf("Simulasi gagal: alokasi memori atau waktu melebihi INT_MAX.\n");
+    } else {
+        print_final_report(p, n, &result);
+    }
 
-    // Reporting Hisyam menggunakan result di sini, sebelum dibebaskan.
     free_mlq_result(&result);
     cleanup(p, queue_list, allocated);
     return status == 0 ? 0 : 1;
