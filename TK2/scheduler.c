@@ -407,6 +407,7 @@ static void print_context_switch_information(const struct mlq_result *result) {
     printf("CONTEXT SWITCH INFORMATION\n");
     print_line('=');
     printf("Total Context Switch : %d\n", total);
+    printf("\n");
 }
 
 static int is_final_segment(const struct execution_segment *segment,
