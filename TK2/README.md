@@ -32,6 +32,11 @@ Contoh menjalankan dari direktori TK2:
 ```
 
 Dokumen menyertakan hasil MLQ yang diharapkan dan hasil aktual program.
-Saat ini `main()` hanya mengeksekusi Q3 (FCFS), sehingga kasus yang memakai
-Q1/Q2 belum lulus pengujian MLQ. Interval kasus manual Q3 sudah cocok dengan
-output program; metrik TAT/WT/RT dihitung dari interval tersebut.
+Testcase 01–08 sudah cocok dengan simulasi MLQ terpisah, termasuk Gantt,
+CT/TAT/WT/RT untuk seluruh 47 proses, rata-rata, utilization, throughput,
+context switch, preemption, dan state transitions. Hasil hitungan manual
+TC08 juga cocok dengan tabel dan rata-rata yang dicetak program.
+
+Output lengkap tiap testcase tersimpan di [`tests/outputs/`](tests/outputs/)
+dengan nama yang sama seperti inputnya. Ringkasan verifikasi dan SHA256
+source yang diuji tersedia di [`tests/verification.txt`](tests/verification.txt).

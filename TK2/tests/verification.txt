@@ -1,0 +1,18 @@
+VERIFIKASI INPUT/OUTPUT TESTCASE 01-08
+Source SHA256: 920f93a2cf5a62714b5f61e45ca74c075b2adb2af715475e7462641f4336de73
+Build: GCC C11, -Wall -Wextra -Wpedantic -Werror, UBSan.
+Oracle: simulasi MLQ per tick terpisah dari scheduler.c.
+Context switch: pergantian PID berurutan, transisi idle tidak dihitung.
+State transitions: sesuai segmen Gantt yang digabung program.
+
+01_normal_q1.txt: LULUS (5 proses); TAT/WT/RT=10.20/6.80/5.20; context switch=12; preemption=0.
+02_normal_q2.txt: LULUS (5 proses); TAT/WT/RT=10.40/7.00/5.60; context switch=8; preemption=0.
+03_normal_q4.txt: LULUS (5 proses); TAT/WT/RT=10.40/7.00/6.40; context switch=5; preemption=0.
+04_arrival_idle.txt: LULUS (5 proses); TAT/WT/RT=2.40/0.40/0.00; context switch=2; preemption=1.
+05_burst_timpang.txt: LULUS (5 proses); TAT/WT/RT=14.80/5.40/5.40; context switch=4; preemption=0.
+06_banyak_proses.txt: LULUS (12 proses); TAT/WT/RT=14.25/11.17/10.42; context switch=13; preemption=1.
+07_edge_case.txt: LULUS (5 proses); TAT/WT/RT=3.00/2.00/2.00; context switch=4; preemption=0.
+08_manual_fcfs.txt: LULUS (5 proses); TAT/WT/RT=3.00/0.60/0.60; context switch=2; preemption=0.
+
+8/8 testcase LULUS; seluruh 47 proses dan hitungan per proses cocok.
+Hasil ini memverifikasi delapan input tersebut pada source dengan SHA256 di atas.

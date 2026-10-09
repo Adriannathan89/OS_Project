@@ -36,16 +36,17 @@ ATURAN UNTUK HASIL MLQ YANG DIHARAPKAN
   Start = waktu pertama mendapat CPU; CT = completion time.
   TAT = CT - AT; WT = TAT - BT; RT = Start - AT.
 
-BATAS IMPLEMENTASI DAN KRITERIA LULUS
-  main() saat ini mencetak konfigurasi seluruh proses, tetapi hanya
-  memanggil simulate_fcfs(&queue_list[2]). Dispatcher MLQ belum dipanggil.
-  Karena itu hasil MLQ di bawah adalah target pengujian, bukan klaim bahwa
-  scheduler.c sudah menghasilkan hasil tersebut. Q1/Q2 belum dijalankan.
-  Program juga belum mencetak tabel CT/TAT/WT/RT atau rata-ratanya.
-  Lulus penuh: semua proses dijadwalkan dan interval/angka cocok dengan
-  hasil yang diharapkan. Exit code 0 saja tidak cukup untuk lulus.
-  TC08 dapat diverifikasi melalui interval Q3 yang sudah dicetak program;
-  tabel metrik TC08 dihitung manual dari interval tersebut.
+VERIFIKASI IMPLEMENTASI DAN KRITERIA LULUS
+  scheduler.c terbaru menjalankan Q1/Q2 (RR) dan Q3 (FCFS) melalui
+  simulate_mlq(), lalu mencetak Gantt, tabel CT/TAT/WT/RT, rata-rata,
+  utilization, throughput, context switch, preemption, dan state transitions.
+  TC01-TC08 sudah dijalankan dengan build GCC C11 + UBSan.
+  Input, Gantt dan seluruh 47 perhitungan proses cocok dengan output.
+  Rata-rata, utilization, throughput, context switch, preemption, dan
+  state transitions juga cocok dengan simulasi MLQ terpisah.
+  Output lengkap tiap input tersimpan di tests/outputs/ dengan nama sama.
+  Ringkasan verifikasi tersedia di tests/verification.txt.
+  Lulus penuh membutuhkan kesesuaian angka; exit code 0 saja tidak cukup.
 
 DATA INPUT
   Seluruh data dibuat khusus untuk pengujian ini. Perbandingan quantum
@@ -139,9 +140,10 @@ WT = TAT - BT
    = 14 - 3
    = 11
 
-Interval yang benar-benar dicetak scheduler.c:
-  P5: 3 -> 6
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P1 (0-1) | P2 (1-2) | P1 (2-3) | P2 (3-4) | P1 (4-5) | P2 (5-6) | P1 (6-8) | P3 (8-9) | P4 (9-10) | P3 (10-11) | P4 (11-12) | P3 (12-14) | P5 (14-17) |
+Output lengkap: tests/outputs/01_normal_q1.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC02: Kondisi normal, quantum Q1=Q2=2
 -----------------------------------------------------------------
@@ -229,9 +231,10 @@ WT = TAT - BT
    = 14 - 3
    = 11
 
-Interval yang benar-benar dicetak scheduler.c:
-  P5: 3 -> 6
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P1 (0-2) | P2 (2-4) | P1 (4-6) | P2 (6-7) | P1 (7-8) | P3 (8-10) | P4 (10-12) | P3 (12-14) | P5 (14-17) |
+Output lengkap: tests/outputs/02_normal_q2.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC03: Kondisi normal, quantum Q1=Q2=4
 -----------------------------------------------------------------
@@ -319,9 +322,10 @@ WT = TAT - BT
    = 14 - 3
    = 11
 
-Interval yang benar-benar dicetak scheduler.c:
-  P5: 3 -> 6
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P1 (0-4) | P2 (4-7) | P1 (7-8) | P3 (8-12) | P4 (12-14) | P5 (14-17) |
+Output lengkap: tests/outputs/03_normal_q4.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC04: Arrival tersebar dan ready queue kosong
 -----------------------------------------------------------------
@@ -409,10 +413,10 @@ WT = TAT - BT
    = 2 - 2
    = 0
 
-Interval yang benar-benar dicetak scheduler.c:
-  P1: 2 -> 4
-  P5: 20 -> 22
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | IDLE (0-2) | P1 (2-4) | IDLE (4-7) | P2 (7-8) | P3 (8-10) | P2 (10-12) | IDLE (12-16) | P4 (16-17) | IDLE (17-20) | P5 (20-22) |
+Output lengkap: tests/outputs/04_arrival_idle.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC05: Burst time berbeda signifikan (1 sampai 24)
 -----------------------------------------------------------------
@@ -500,9 +504,10 @@ WT = TAT - BT
    = 3 - 3
    = 0
 
-Interval yang benar-benar dicetak scheduler.c:
-  P1: 0 -> 24
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P2 (0-1) | P3 (1-3) | P5 (3-6) | P4 (6-23) | P1 (23-47) |
+Output lengkap: tests/outputs/05_burst_timpang.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC06: 12 proses dengan semua queue terisi
 -----------------------------------------------------------------
@@ -688,12 +693,10 @@ WT = TAT - BT
    = 28 - 4
    = 24
 
-Interval yang benar-benar dicetak scheduler.c:
-  P1: 0 -> 4
-  P6: 4 -> 10
-  P9: 10 -> 13
-  P12: 13 -> 17
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P3 (0-2) | P5 (2-3) | P2 (3-4) | P7 (4-8) | P11 (8-10) | P2 (10-12) | P4 (12-16) | P8 (16-18) | P10 (18-19) | P4 (19-20) | P1 (20-24) | P6 (24-30) | P9 (30-33) | P12 (33-37) |
+Output lengkap: tests/outputs/06_banyak_proses.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC07: AT, BT, prioritas sama; BT sangat kecil
 -----------------------------------------------------------------
@@ -781,9 +784,10 @@ WT = TAT - BT
    = 5 - 1
    = 4
 
-Interval yang benar-benar dicetak scheduler.c:
-  Tidak ada interval proses.
-Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
+Gantt aktual scheduler.c:
+  | P1 (0-1) | P2 (1-2) | P3 (2-3) | P4 (3-4) | P5 (4-5) |
+Output lengkap: tests/outputs/07_edge_case.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 TC08: Verifikasi manual Q3 (FCFS), termasuk idle
 -----------------------------------------------------------------
@@ -871,13 +875,10 @@ WT = TAT - BT
    = 2 - 2
    = 0
 
-Interval yang benar-benar dicetak scheduler.c:
-  P1: 0 -> 3
-  P2: 3 -> 5
-  P3: 6 -> 7
-  P4: 7 -> 11
-  P5: 15 -> 17
-Status verifikasi: interval FCFS cocok dengan hitungan manual.
+Gantt aktual scheduler.c:
+  | P1 (0-3) | P2 (3-5) | IDLE (5-6) | P3 (6-7) | P4 (7-11) | IDLE (11-15) | P5 (15-17) |
+Output lengkap: tests/outputs/08_manual_fcfs.txt
+Status verifikasi: LULUS; input, Gantt, metrik, dan hitungan per proses cocok.
 
 PERHITUNGAN MANUAL TC08 (UNTUK LAPORAN)
 =====================================
@@ -903,17 +904,12 @@ Rata-rata WT  = (0+2+0+1+0)/5 =  3/5 = 0.60
 Rata-rata RT  = (0+2+0+1+0)/5 =  3/5 = 0.60
 Total BT = 12; total idle = 1+4 = 5; waktu selesai terakhir = 17.
 
-Bagian output interval program yang wajib identik:
-P1: 0 -> 3
-P2: 3 -> 5
-P3: 6 -> 7
-P4: 7 -> 11
-P5: 15 -> 17
+Bagian Gantt output program yang identik dengan hitungan manual:
+| P1 (0-3) | P2 (3-5) | IDLE (5-6) | P3 (6-7) | P4 (7-11) | IDLE (11-15) | P5 (15-17) |
 
-Output program saat ini menampilkan interval di atas, bukan metrik.
-CT diambil dari akhir interval, Start dari awal interval; TAT/WT/RT
-kemudian dihitung menggunakan rumus. Klaim bahwa program mencetak
-rata-rata metrik tersebut harus menunggu fitur output metrik tersedia.
+Tabel CT/TAT/WT/RT dan rata-rata pada output program sudah cocok dengan
+hitungan manual di atas. CPU utilization = 12/17*100 = 70.59%;
+throughput = 5/17 = 0.29 process/time unit.
 
 CATATAN ARRIVAL DAN EDGE CASE
   TC04: target CPU idle 0-2, 4-7, 12-16, 17-20.
