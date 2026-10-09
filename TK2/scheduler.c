@@ -383,7 +383,6 @@ static void print_utilization_and_throughput(const struct mlq_result *result, in
 static void print_context_switch_information(const struct mlq_result *result) {
     const struct execution_segment *segment = result->head;
     int total = 0;
-    int per_queue[3] = {0, 0, 0};
     int previous_pid = 0;
     int previous_queue = 0;
 
@@ -391,8 +390,6 @@ static void print_context_switch_information(const struct mlq_result *result) {
         if (segment->pid != 0) {
             if (previous_pid != 0 && previous_pid != segment->pid) {
                 total++;
-                if (previous_queue >= 1 && previous_queue <= 3)
-                    per_queue[previous_queue - 1]++;
             }
             previous_pid = segment->pid;
             previous_queue = segment->queue;
