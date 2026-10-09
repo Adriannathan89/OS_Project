@@ -8,6 +8,12 @@ print_header() {
   printf '%*s\n' "$width" '' | tr ' ' '='
   printf "%*s\n" $(( (${#title} + width) / 2 )) "$title"
   printf '%*s\n' "$width" '' | tr ' ' '='
+  local title="TUGAS 1 OS - KELOMPOK B08"
+  local width=82
+
+  printf '%*s\n' "$width" '' | tr ' ' '='
+  printf "%*s\n" $(( (${#title} + width) / 2 )) "$title"
+  printf '%*s\n' "$width" '' | tr ' ' '='
 }
 
 # =====================================================
