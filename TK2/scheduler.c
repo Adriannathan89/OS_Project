@@ -13,7 +13,8 @@ struct process {
     int burst_time;
     int queue;
     int remaining_time;
-    int admitted;
+    int first_start;       // -1 kalau belum pernah jalan (buat RT)
+    int completion_time;   // CT
     int quantum_left;
 };
 
@@ -99,6 +100,31 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
     printf("\n");
 }
 
+// Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin.
+static int queue_push(struct queue *q, struct process *p) {
+    struct node *new_node = (struct node *)malloc(sizeof(struct node));
+    if (!new_node) return -1;
+
+    new_node->process = p;
+    new_node->next = NULL;
+    if (q->tail) q->tail->next = new_node;
+    else q->head = new_node;
+    q->tail = new_node;
+    return 0;
+}
+
+// Proses yang dipreempt kembali ke depan queue asal.
+static int queue_push_front(struct queue *q, struct process *p) {
+    struct node *new_node = (struct node *)malloc(sizeof(struct node));
+    if (!new_node) return -1;
+
+    new_node->process = p;
+    new_node->next = q->head;
+    q->head = new_node;
+    if (!q->tail) q->tail = new_node;
+    return 0;
+}
+
 static struct process* queue_pop(struct queue *q) {
     if (q->head == NULL) return NULL; // empty queue
 
@@ -112,47 +138,38 @@ static struct process* queue_pop(struct queue *q) {
     return p;
 }
 
-// Engine RR Q1/Q2: satu tick, dengan sisa quantum dipertahankan.
-// Return: 0 = lanjut, 1 = selesai, 2 = quantum habis, -1 = gagal.
-int execute_rr_tick(struct queue *q, int quantum) {
-    if (!q->head || quantum <= 0) return -1;
-    struct process *p = q->head->process;
-    if (p->quantum_left == 0) p->quantum_left = quantum;
+// Engine RR dari Dimas: waktu bertambah di engine, queue diurus dispatcher.
+#define RR_RUNNING  0
+#define RR_DONE     1
+#define RR_QUANTUM  2
 
-    p->remaining_time--;
-    p->quantum_left--;
-
-    if (p->remaining_time == 0) {
-        queue_pop(q);
-        p->quantum_left = 0;
-        return 1;
-    }
-
-    if (p->quantum_left == 0) {
-        // Pindahkan node depan ke belakang tanpa alokasi baru.
-        if (q->head != q->tail) {
-            struct node *node = q->head;
-            q->head = node->next;
-            node->next = NULL;
-            q->tail->next = node;
-            q->tail = node;
-        }
-        return 2;
-    }
-    return 0;
+void rr_start(struct process *p, int quantum, int now) {
+    p->quantum_left = quantum;
+    if (p->first_start == -1) p->first_start = now;
 }
 
-// FCFS Q3: proses aktif tetap di depan sampai selesai atau di-preempt.
-static int execute_fcfs_tick(struct queue *q) {
-    if (!q->head) return -1;
-    struct process *p = q->head->process;
+int execute_rr_tick(struct process *p, int *current_time) {
     p->remaining_time--;
+    p->quantum_left--;
+    (*current_time)++;
 
     if (p->remaining_time == 0) {
-        queue_pop(q);
-        return 1;
+        p->completion_time = *current_time;
+        return RR_DONE;
     }
-    return 0;
+    if (p->quantum_left == 0) return RR_QUANTUM;
+    return RR_RUNNING;
+}
+
+// FCFS Q3 memakai waktu bersama, tanpa batas quantum.
+static int execute_fcfs_tick(struct process *p, int *current_time) {
+    p->remaining_time--;
+    (*current_time)++;
+    if (p->remaining_time == 0) {
+        p->completion_time = *current_time;
+        return RR_DONE;
+    }
+    return RR_RUNNING;
 }
 
 static int admit_arrivals(
@@ -271,8 +288,8 @@ static void free_mlq_result(struct mlq_result *result) {
 }
 
 
-// Dispatcher memakai satu waktu bersama dan menghasilkan data untuk reporting.
-// Proses aktif tetap di head; preemption tidak mereset sisa quantum RR.
+// Dispatcher mengurus ready queue; engine hanya menjalankan satu tick.
+// Sesuai remote: requeue mendahului arrival berikutnya, quantum reset saat resume.
 static int simulate_mlq(
    struct process *p[],
    int n,
@@ -295,10 +312,10 @@ static int simulate_mlq(
 
     if (!admitted) return -1;
 
-    long long time = 0;
+    int time = 0;
     int completed = 0;
     int error = 0;
-    struct process *previous = NULL;
+    struct process *running = NULL;
 
     while (completed < n) {
         if (admit_arrivals(p, n, admitted, ready_queue, time) != 0) {
@@ -308,7 +325,16 @@ static int simulate_mlq(
 
         int selected = select_queue(ready_queue);
 
-        if (selected == -1) {
+        if (running && selected != -1 && selected < running->queue - 1) {
+            record_preemption(result, running, ready_queue[selected].head->process);
+            if (queue_push_front(&ready_queue[running->queue - 1], running) != 0) {
+                error = 1;
+                break;
+            }
+            running = NULL;
+        }
+
+        if (!running && selected == -1) {
             long long next = next_arrival_time(p, n, admitted);
 
             if (next == LLONG_MAX ||
@@ -317,45 +343,44 @@ static int simulate_mlq(
                 break;
             }
 
-            time = next;
-            previous = NULL;
+            time = (int)next;
             continue;
         }
 
-        struct process *running = ready_queue[selected].head->process;
-
-        record_preemption(result, previous, running);
-
-        if (record_execution(result, running, time, time + 1) != 0) {
-            error = 1;
-            break;
+        if (!running) {
+            running = queue_pop(&ready_queue[selected]);
+            if (selected < 2) {
+                int quantum = selected == 0 ? ctx.quantum_1 : ctx.quantum_2;
+                rr_start(running, quantum, time);
+            } else if (running->first_start == -1) {
+                running->first_start = time;
+            }
         }
 
-        // Pilihan tick ini sudah tetap. Kedatangan di batas akhir tick
-        // masuk sebelum requeue RR, tetapi dipilih pada tick berikutnya.
-        if (admit_arrivals(p, n, admitted, ready_queue, time + 1) != 0) {
+        // Interface waktu/CT remote memakai int; cegah overflow sebelum engine.
+        if (time == INT_MAX ||
+            record_execution(result, running, time, (long long)time + 1) != 0) {
             error = 1;
             break;
         }
 
         int status;
-        if (selected == 2) {
-            status = execute_fcfs_tick(&ready_queue[2]);
+        if (running->queue == 3) {
+            status = execute_fcfs_tick(running, &time);
         } else {
-            int quantum = selected == 0 ? ctx.quantum_1 : ctx.quantum_2;
-            status = execute_rr_tick(&ready_queue[selected], quantum);
+            status = execute_rr_tick(running, &time);
         }
 
-        if (status < 0 || status > 2) {
-            error = 1;
-            break;
+        if (status == RR_DONE) {
+            completed++;
+            running = NULL;
+        } else if (status == RR_QUANTUM) {
+            if (queue_push(&ready_queue[running->queue - 1], running) != 0) {
+                error = 1;
+                break;
+            }
+            running = NULL;
         }
-
-        time++;
-        if (status == 1) completed++;
-
-        // Completion dan quantum expiry bukan preemption antar-queue.
-        previous = status == 0 ? running : NULL;
     }
 
     // Pada sukses semua antrean kosong; pada gagal bersihkan sisa node.
@@ -486,7 +511,8 @@ int main(void) {
         p[i]->burst_time = bt;
         p[i]->queue = queue_choice; // initial queue
         p[i]->remaining_time = bt; // initial value
-        p[i]->admitted = 0;
+        p[i]->first_start = -1;
+        p[i]->completion_time = 0;
         p[i]->quantum_left = 0;
     }
 
@@ -494,7 +520,7 @@ int main(void) {
     print_process_queue(p, ctx, n);
     struct mlq_result result;
     int status = simulate_mlq(p, n, ctx, &result);
-    if (status != 0) printf("Simulasi gagal: alokasi memori.\n");
+    if (status != 0) printf("Simulasi gagal: alokasi memori atau waktu melebihi INT_MAX.\n");
 
     // Reporting Hisyam menggunakan result di sini, sebelum dibebaskan.
     free_mlq_result(&result);
