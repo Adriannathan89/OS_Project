@@ -13,9 +13,8 @@ struct process {
     int burst_time;
     int queue;
     int remaining_time;
-    int first_start;       // [TAMBAHAN] -1 kalau belum pernah jalan (buat RT)
-    int completion_time;   // [TAMBAHAN] CT
-    int quantum_left;      // [TAMBAHAN] sisa quantum saat proses lagi jalan (Q3 FCFS: INF)
+    int admitted;
+    int quantum_left;
 };
 
 // use linked list
@@ -34,6 +33,21 @@ struct context {
     int quantum_2;
 };
 
+struct execution_segment {
+    int pid; // 0 berarti CPU idle.
+    int queue;
+    long long start;
+    long long end;
+    int preempted_remaining; // Sisa BT jika di-preempt pada akhir interval.
+    struct execution_segment *next;
+};
+
+struct mlq_result {
+    struct execution_segment *head;
+    struct execution_segment *tail;
+    long long higher_preemptions;
+};
+
 // line printer function
 static void print_line(char c) {
     for (int i = 0; i < LINE_WIDTH; i++) putchar(c);
@@ -50,7 +64,7 @@ void process_input(struct process *p[], struct context ctx, int n) {
     printf("Q1: RR (quantum=%d) | Q2: RR (quantum=%d) | Q3: FCFS\n",
            ctx.quantum_1, ctx.quantum_2);
     printf("%-3s%15s%11s%9s%18s\n", "PID", "AT", "BT", "Queue", "Algorithm");
-    
+
     print_line('-');
 
     for(int i = 0; i < n; i++) {
@@ -85,98 +99,277 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
     printf("\n");
 }
 
-// Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin
-static int queue_push(struct queue *q, struct process *p) {
-    struct node *new_node = (struct node *)malloc(sizeof(struct node)); // check memory allocation for push_back
-    if (!new_node) return -1; // Memory allocation failed
-
-    new_node->process = p; // making new node for push back
-    new_node->next = NULL;
-
-    if (q->tail) q->tail->next = new_node; // push back
-    else q->head = new_node;               // queue was empty
-    q->tail = new_node;
-    return 0;
-}
-
-// [TAMBAHAN] Enqueue ke depan antrean, buat proses yang dipreempt queue atas
-static int queue_push_front(struct queue *q, struct process *p) {
-    struct node *new_node = (struct node *)malloc(sizeof(struct node));
-    if (!new_node) return -1; // Memory allocation failed
-
-    new_node->process = p;
-    new_node->next = q->head;
-    q->head = new_node;
-    if (!q->tail) q->tail = new_node; // queue was empty
-    return 0;
-}
-
-
 static struct process* queue_pop(struct queue *q) {
     if (q->head == NULL) return NULL; // empty queue
 
-    struct node *temp = q->head; // accessing first node in queue
-    struct process *p = temp->process; // first node's process
+    struct node *n = q->head; // accessing first node in queue
+    struct process *p = n->process;
 
-    q->head = temp->next; // erasing first node
+    q->head = n->next;
     if (q->head == NULL) q->tail = NULL;
-    free(temp); // freeing memory
+    free(n); // freeing memory
 
     return p;
 }
 
-// [TAMBAHAN] Hasil satu tick
-#define RR_RUNNING  0   // proses masih jalan, lanjut tick berikutnya
-#define RR_DONE     1   // proses selesai
-#define RR_QUANTUM  2   // quantum habis -> caller push ke belakang queue
+// Engine RR Q1/Q2: satu tick, dengan sisa quantum dipertahankan.
+// Return: 0 = lanjut, 1 = selesai, 2 = quantum habis, -1 = gagal.
+int execute_rr_tick(struct queue *q, int quantum) {
+    if (!q->head || quantum <= 0) return -1;
+    struct process *p = q->head->process;
+    if (p->quantum_left == 0) p->quantum_left = quantum;
 
-// Mulai jalanin proses di CPU. Quantum dihitung ulang dari awal
-// (proses yang baru dipilih atau yang balik setelah dipreempt).
-// Q3 (FCFS): kasih quantum = INF
-void rr_start(struct process *p, int quantum, int now) {
-    p->quantum_left = quantum;
-    if (p->first_start == -1) p->first_start = now; // start pertama, buat RT
-}
-
-// Fungsi Engine Round Robin per tick yang reusable untuk Q1 & Q2 (Q3 FCFS: quantum = INF)
-// Jalanin proses p selama 1 unit waktu. Interrupt/preemption TIDAK diurus di sini:
-// dispatcher ngecek queue atas di awal tiap tick sebelum manggil fungsi ini.
-// Kalau hasilnya DONE / QUANTUM, caller yang ngurus proses p (selesai / push ke belakang queue)
-int execute_rr_tick(struct process *p, int *current_time) {
-    p->remaining_time--; // sisa Burst Time
-    p->quantum_left--;   // sisa quantum
-    (*current_time)++;   // execute 1 tick
+    p->remaining_time--;
+    p->quantum_left--;
 
     if (p->remaining_time == 0) {
-        p->completion_time = *current_time; // selesai -> TERMINATED
-        return RR_DONE;
+        queue_pop(q);
+        p->quantum_left = 0;
+        return 1;
     }
 
-    // Logic Quantum Expiry
-    if (p->quantum_left == 0) return RR_QUANTUM; // kalo quantum habis, masih ada remanining time
-
-    return RR_RUNNING; //quantum masih ada, remaining time masih ada
+    if (p->quantum_left == 0) {
+        // Pindahkan node depan ke belakang tanpa alokasi baru.
+        if (q->head != q->tail) {
+            struct node *node = q->head;
+            q->head = node->next;
+            node->next = NULL;
+            q->tail->next = node;
+            q->tail = node;
+        }
+        return 2;
+    }
+    return 0;
 }
 
-static void simulate_fcfs(struct queue *q) {
-    int current_time = 0;
+// FCFS Q3: proses aktif tetap di depan sampai selesai atau di-preempt.
+static int execute_fcfs_tick(struct queue *q) {
+    if (!q->head) return -1;
+    struct process *p = q->head->process;
+    p->remaining_time--;
 
-    while (q->head != NULL) {
-        struct process *p = queue_pop(q);
-        
-        if (current_time < p->arrival_time) {
-            current_time = p->arrival_time;
+    if (p->remaining_time == 0) {
+        queue_pop(q);
+        return 1;
+    }
+    return 0;
+}
+
+static int admit_arrivals(
+    struct process *p[],
+    int n,
+    unsigned char admitted[],
+    struct queue ready_queue[],
+    long long time
+){
+    for (int i=0; i<n; i++) {
+        if (!admitted[i] && p[i]->arrival_time <= time) {
+            if (queue_push(
+                &ready_queue[p[i]->queue - 1], p[i]
+            ) != 0)
+                return -1;
+
+            admitted[i] = 1;
+        }
+    }
+
+    return 0;
+}
+
+
+static int select_queue(struct queue ready_queue[]) {
+    for (int i = 0; i < 3; i++) {
+        if (ready_queue[i].head != NULL)
+            return i;
+    }
+
+    return -1;
+}
+
+
+static int record_execution(
+    struct mlq_result *result,
+    struct process *p,
+    long long start,
+    long long end
+) {
+    int pid = p ? p->pid : 0;
+    int queue = p ? p->queue : 0;
+
+    // gabungkan interval berurutan dari proses yang sama.
+    if (result->tail &&
+        result->tail->pid == pid &&
+        result->tail->queue == queue &&
+        result->tail->end == start) {
+
+        result->tail->end = end;
+        return 0;
+    }
+
+    struct execution_segment *segment = (struct execution_segment *)malloc(sizeof(*segment));
+
+    if (!segment) return -1;
+
+    segment->pid = pid;
+    segment->queue = queue;
+    segment->start = start;
+    segment->end = end;
+    segment->preempted_remaining = 0;
+    segment->next = NULL;
+
+    if (result->tail) result->tail->next = segment;
+    else result->head = segment;
+
+    result->tail = segment;
+    return 0;
+}
+
+
+static void record_preemption(
+    struct mlq_result *result,
+    struct process *previous,
+    struct process *running
+) {
+    if (previous != NULL &&
+        running->queue < previous->queue) {
+
+        result->tail->preempted_remaining =
+            previous->remaining_time;
+
+        result->higher_preemptions++;
+    }
+}
+
+static long long next_arrival_time(
+    struct process *p[],
+    int n,
+    unsigned char admitted[]
+) {
+    long long next = LLONG_MAX;
+
+    for (int i=0; i<n; i++) {
+        if (!admitted[i] && p[i]->arrival_time < next) {
+            next = p[i]->arrival_time;
+        }
+    }
+
+    return next;
+}
+
+static void free_mlq_result(struct mlq_result *result) {
+    struct execution_segment *segment = result->head;
+
+    while (segment) {
+        struct execution_segment *next = segment->next;
+        free(segment);
+        segment = next;
+    }
+
+    result->head = NULL;
+    result->tail = NULL;
+    result->higher_preemptions = 0;
+}
+
+
+// Dispatcher memakai satu waktu bersama dan menghasilkan data untuk reporting.
+// Proses aktif tetap di head; preemption tidak mereset sisa quantum RR.
+static int simulate_mlq(
+   struct process *p[],
+   int n,
+   struct context ctx,
+   struct mlq_result *result
+) {
+    struct queue ready_queue[3] = {
+        {NULL, NULL},
+        {NULL, NULL},
+        {NULL, NULL}
+    };
+
+    result->head = NULL;
+    result->tail = NULL;
+    result->higher_preemptions = 0;
+
+    if (n <= 0 || ctx.quantum_1 <= 0 || ctx.quantum_2 <= 0) return -1;
+
+    unsigned char *admitted = (unsigned char *)calloc((size_t)n, sizeof(*admitted));
+
+    if (!admitted) return -1;
+
+    long long time = 0;
+    int completed = 0;
+    int error = 0;
+    struct process *previous = NULL;
+
+    while (completed < n) {
+        if (admit_arrivals(p, n, admitted, ready_queue, time) != 0) {
+            error = 1;
+            break;
         }
 
-        int start_time = current_time;
-        current_time += p->remaining_time;
-        p->remaining_time = 0;
+        int selected = select_queue(ready_queue);
 
-        printf("P%d: %d -> %d\n", p->pid, start_time, current_time);
+        if (selected == -1) {
+            long long next = next_arrival_time(p, n, admitted);
+
+            if (next == LLONG_MAX ||
+                record_execution(result, NULL, time, next) != 0) {
+                error = 1;
+                break;
+            }
+
+            time = next;
+            previous = NULL;
+            continue;
+        }
+
+        struct process *running = ready_queue[selected].head->process;
+
+        record_preemption(result, previous, running);
+
+        if (record_execution(result, running, time, time + 1) != 0) {
+            error = 1;
+            break;
+        }
+
+        // Pilihan tick ini sudah tetap. Kedatangan di batas akhir tick
+        // masuk sebelum requeue RR, tetapi dipilih pada tick berikutnya.
+        if (admit_arrivals(p, n, admitted, ready_queue, time + 1) != 0) {
+            error = 1;
+            break;
+        }
+
+        int status;
+        if (selected == 2) {
+            status = execute_fcfs_tick(&ready_queue[2]);
+        } else {
+            int quantum = selected == 0 ? ctx.quantum_1 : ctx.quantum_2;
+            status = execute_rr_tick(&ready_queue[selected], quantum);
+        }
+
+        if (status < 0 || status > 2) {
+            error = 1;
+            break;
+        }
+
+        time++;
+        if (status == 1) completed++;
+
+        // Completion dan quantum expiry bukan preemption antar-queue.
+        previous = status == 0 ? running : NULL;
     }
+
+    // Pada sukses semua antrean kosong; pada gagal bersihkan sisa node.
+    for (int i = 0; i < 3; i++) {
+        while (queue_pop(&ready_queue[i]) != NULL) {
+        }
+    }
+    free(admitted);
+    if (error) {
+        free_mlq_result(result);
+        return -1;
+    }
+    return 0;
 }
-
-
 // Read a whole token so malformed or overflowing integers are rejected.
 static int read_int(int *value) {
     char token[64];
@@ -291,24 +484,20 @@ int main(void) {
         p[i]->pid = i + 1;
         p[i]->arrival_time = at;
         p[i]->burst_time = bt;
-        p[i]->remaining_time = bt; // [TAMBAHAN] Inisialisasi sisa BT
         p[i]->queue = queue_choice; // initial queue
         p[i]->remaining_time = bt; // initial value
-        p[i]->first_start = -1; // [TAMBAHAN] belum pernah jalan
-        p[i]->completion_time = 0; // [TAMBAHAN]
-        p[i]->quantum_left = 0; // [TAMBAHAN]
-
-        // Add process to the appropriate queue
-        if(queue_push(&queue_list[queue_choice - 1], p[i]) != 0) {
-            printf("Gagal menambahkan proses ke queue %d.\n", queue_choice);
-            cleanup(p, queue_list, allocated);
-            return 1;
-        }
+        p[i]->admitted = 0;
+        p[i]->quantum_left = 0;
     }
 
     process_input(p, ctx, n);
     print_process_queue(p, ctx, n);
-    simulate_fcfs(&queue_list[2]);
+    struct mlq_result result;
+    int status = simulate_mlq(p, n, ctx, &result);
+    if (status != 0) printf("Simulasi gagal: alokasi memori.\n");
+
+    // Reporting Hisyam menggunakan result di sini, sebelum dibebaskan.
+    free_mlq_result(&result);
     cleanup(p, queue_list, allocated);
-    return 0;
+    return status == 0 ? 0 : 1;
 }
