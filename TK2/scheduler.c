@@ -8,6 +8,7 @@ struct process {
     int arrival_time;
     int burst_time;
     int queue;
+    int remaining_time; // [TAMBAHAN] Tracking sisa Burst Time untuk Round Robin
 };
 
 // use linked list
@@ -82,6 +83,58 @@ static int queue_push(struct queue *q, struct process *p) {
     return 0; // Success
 }
 
+// Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin
+static int queue_push_back(struct queue *q, struct process *p) {
+    struct queue *new_node = (struct queue *)malloc(sizeof(struct queue)); // check memory allocation for push_back
+    if (!new_node) return -1; // Memory allocation failed
+
+    new_node->processes = (struct process **)malloc(sizeof(struct process *)); // check memory allocation for process
+    if (!new_node->processes) { 
+        free(new_node); 
+        return -1;  // Memory allocation failed
+    }
+    *(new_node->processes) = p; // making new node for push back
+    new_node->next = NULL;
+
+    struct queue *curr = q;
+    while (curr->next != NULL) {
+        curr = curr->next; // go to the back of queue
+    }
+    curr->next = new_node; // push back
+    return 0;
+}
+
+
+static struct process* queue_pop(struct queue *q) {
+    if (q->next == NULL) return NULL; // empty queue 
+
+    struct queue *temp = q->next; // accessing first node in queue
+    struct process *p = *(temp->processes); // first node's process
+
+    q->next = temp->next; // erasing first node
+    free(temp); // freeing memory
+
+    return p;
+}
+
+// Fungsi Engine Round Robin yang reusable untuk Q1 & Q2
+int execute_rr_step(struct queue *q, int quantum, int *current_time) {
+    struct process *p = queue_pop(q); // taking first node
+    if (!p) return 0; // no queue left
+
+    int exec_time = (p->remaining_time < quantum) ? p->remaining_time : quantum; // time allocate for the process
+
+    p->remaining_time -= exec_time; // sisa Burst Time
+    *current_time += exec_time; // execute
+
+    // Logic Quantum Expiry & Requeue ke belakang
+    if (p->remaining_time > 0) {
+        queue_push_back(q, p); // push back process
+    } 
+
+    return exec_time;
+}
+
 int main() {
     int n, quantum_1, quantum_2;
 
@@ -109,7 +162,7 @@ int main() {
 
     for(int i = 0; i < n; i++) {
         int at, bt, queue_choice;
-        printf("P%d - masukkan AT BT queue: ", i+1);
+        printf("P%d masukkan AT BT queue: ", i+1);
         scanf("%d %d %d", &at, &bt, &queue_choice);
 
         if(at < 0 || bt <= 0) {
@@ -122,6 +175,7 @@ int main() {
         p[i]->pid = i + 1;
         p[i]->arrival_time = at;
         p[i]->burst_time = bt;
+        p[i]->remaining_time = bt; // [TAMBAHAN] Inisialisasi sisa BT
         p[i]->queue = queue_choice; // initial queue
 
         // Add process to the appropriate queue
@@ -133,4 +187,6 @@ int main() {
 
     process_input(p, ctx, n);
     print_process_queue(p, ctx, n);
+
+    return 0;
 }
