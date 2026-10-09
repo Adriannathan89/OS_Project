@@ -102,8 +102,13 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
 
 // Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin.
 static int queue_push(struct queue *q, struct process *p) {
+<<<<<<< Updated upstream
     struct node *new_node = (struct node *)malloc(sizeof(struct node));
     if (!new_node) return -1;
+=======
+    struct node *new_node = malloc(sizeof(struct node)); // check memory allocation for push_back
+    if (!new_node) return -1; // Memory allocation failed
+>>>>>>> Stashed changes
 
     new_node->process = p;
     new_node->next = NULL;
@@ -115,8 +120,13 @@ static int queue_push(struct queue *q, struct process *p) {
 
 // Proses yang dipreempt kembali ke depan queue asal.
 static int queue_push_front(struct queue *q, struct process *p) {
+<<<<<<< Updated upstream
     struct node *new_node = (struct node *)malloc(sizeof(struct node));
     if (!new_node) return -1;
+=======
+    struct node *new_node = malloc(sizeof(struct node));
+    if (!new_node) return -1; // Memory allocation failed
+>>>>>>> Stashed changes
 
     new_node->process = p;
     new_node->next = q->head;
@@ -465,7 +475,7 @@ int main(void) {
     }
 
     // Allocate memory for process pointers
-    struct process **p = (struct process **)calloc((size_t)n, sizeof(*p));
+    struct process **p = calloc((size_t)n, sizeof(*p));
     if (!p) {
         printf("Gagal mengalokasikan memori untuk daftar proses.\n");
         return 1;
@@ -499,7 +509,7 @@ int main(void) {
         }
 
         // Allocate memory for each process
-        p[i] = (struct process *)malloc(sizeof(*p[i]));
+        p[i] = malloc(sizeof(*p[i]));
         if (!p[i]) {
             printf("Gagal mengalokasikan memori untuk proses P%d.\n", i + 1);
             cleanup(p, queue_list, allocated);

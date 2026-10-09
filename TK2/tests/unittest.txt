@@ -75,6 +75,70 @@ P3     1    4   2       8   14    13    9    7
 P4     2    2   2       9   12    10    8    7
 P5     3    3   3      14   17    14   11   11
 Rata-rata TAT / WT / RT: 10.20 / 6.80 / 5.20
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 5
+Completion Time : 8
+
+TAT = CT - AT
+    = 8 - 0
+    = 8
+WT = TAT - BT
+   = 8 - 5
+   = 3
+
+Process : P2
+Arrival Time : 0
+Burst Time : 3
+Completion Time : 6
+
+TAT = CT - AT
+    = 6 - 0
+    = 6
+WT = TAT - BT
+   = 6 - 3
+   = 3
+
+Process : P3
+Arrival Time : 1
+Burst Time : 4
+Completion Time : 14
+
+TAT = CT - AT
+    = 14 - 1
+    = 13
+WT = TAT - BT
+   = 13 - 4
+   = 9
+
+Process : P4
+Arrival Time : 2
+Burst Time : 2
+Completion Time : 12
+
+TAT = CT - AT
+    = 12 - 2
+    = 10
+WT = TAT - BT
+   = 10 - 2
+   = 8
+
+Process : P5
+Arrival Time : 3
+Burst Time : 3
+Completion Time : 17
+
+TAT = CT - AT
+    = 17 - 3
+    = 14
+WT = TAT - BT
+   = 14 - 3
+   = 11
+
 Interval yang benar-benar dicetak scheduler.c:
   P5: 3 -> 6
 Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
@@ -101,6 +165,70 @@ P3     1    4   2       8   14    13    9    7
 P4     2    2   2      10   12    10    8    8
 P5     3    3   3      14   17    14   11   11
 Rata-rata TAT / WT / RT: 10.40 / 7.00 / 5.60
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 5
+Completion Time : 8
+
+TAT = CT - AT
+    = 8 - 0
+    = 8
+WT = TAT - BT
+   = 8 - 5
+   = 3
+
+Process : P2
+Arrival Time : 0
+Burst Time : 3
+Completion Time : 7
+
+TAT = CT - AT
+    = 7 - 0
+    = 7
+WT = TAT - BT
+   = 7 - 3
+   = 4
+
+Process : P3
+Arrival Time : 1
+Burst Time : 4
+Completion Time : 14
+
+TAT = CT - AT
+    = 14 - 1
+    = 13
+WT = TAT - BT
+   = 13 - 4
+   = 9
+
+Process : P4
+Arrival Time : 2
+Burst Time : 2
+Completion Time : 12
+
+TAT = CT - AT
+    = 12 - 2
+    = 10
+WT = TAT - BT
+   = 10 - 2
+   = 8
+
+Process : P5
+Arrival Time : 3
+Burst Time : 3
+Completion Time : 17
+
+TAT = CT - AT
+    = 17 - 3
+    = 14
+WT = TAT - BT
+   = 14 - 3
+   = 11
+
 Interval yang benar-benar dicetak scheduler.c:
   P5: 3 -> 6
 Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
@@ -127,6 +255,70 @@ P3     1    4   2       8   12    11    7    7
 P4     2    2   2      12   14    12   10   10
 P5     3    3   3      14   17    14   11   11
 Rata-rata TAT / WT / RT: 10.40 / 7.00 / 6.40
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 5
+Completion Time : 8
+
+TAT = CT - AT
+    = 8 - 0
+    = 8
+WT = TAT - BT
+   = 8 - 5
+   = 3
+
+Process : P2
+Arrival Time : 0
+Burst Time : 3
+Completion Time : 7
+
+TAT = CT - AT
+    = 7 - 0
+    = 7
+WT = TAT - BT
+   = 7 - 3
+   = 4
+
+Process : P3
+Arrival Time : 1
+Burst Time : 4
+Completion Time : 12
+
+TAT = CT - AT
+    = 12 - 1
+    = 11
+WT = TAT - BT
+   = 11 - 4
+   = 7
+
+Process : P4
+Arrival Time : 2
+Burst Time : 2
+Completion Time : 14
+
+TAT = CT - AT
+    = 14 - 2
+    = 12
+WT = TAT - BT
+   = 12 - 2
+   = 10
+
+Process : P5
+Arrival Time : 3
+Burst Time : 3
+Completion Time : 17
+
+TAT = CT - AT
+    = 17 - 3
+    = 14
+WT = TAT - BT
+   = 14 - 3
+   = 11
+
 Interval yang benar-benar dicetak scheduler.c:
   P5: 3 -> 6
 Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
@@ -153,6 +345,70 @@ P3     8    2   1       8   10     2    0    0
 P4    16    1   1      16   17     1    0    0
 P5    20    2   3      20   22     2    0    0
 Rata-rata TAT / WT / RT: 2.40 / 0.40 / 0.00
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 2
+Burst Time : 2
+Completion Time : 4
+
+TAT = CT - AT
+    = 4 - 2
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
+Process : P2
+Arrival Time : 7
+Burst Time : 3
+Completion Time : 12
+
+TAT = CT - AT
+    = 12 - 7
+    = 5
+WT = TAT - BT
+   = 5 - 3
+   = 2
+
+Process : P3
+Arrival Time : 8
+Burst Time : 2
+Completion Time : 10
+
+TAT = CT - AT
+    = 10 - 8
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
+Process : P4
+Arrival Time : 16
+Burst Time : 1
+Completion Time : 17
+
+TAT = CT - AT
+    = 17 - 16
+    = 1
+WT = TAT - BT
+   = 1 - 1
+   = 0
+
+Process : P5
+Arrival Time : 20
+Burst Time : 2
+Completion Time : 22
+
+TAT = CT - AT
+    = 22 - 20
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
 Interval yang benar-benar dicetak scheduler.c:
   P1: 2 -> 4
   P5: 20 -> 22
@@ -180,6 +436,70 @@ P3     1    2   2       1    3     2    0    0
 P4     2   17   2       6   23    21    4    4
 P5     3    3   1       3    6     3    0    0
 Rata-rata TAT / WT / RT: 14.80 / 5.40 / 5.40
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 24
+Completion Time : 47
+
+TAT = CT - AT
+    = 47 - 0
+    = 47
+WT = TAT - BT
+   = 47 - 24
+   = 23
+
+Process : P2
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 1
+
+TAT = CT - AT
+    = 1 - 0
+    = 1
+WT = TAT - BT
+   = 1 - 1
+   = 0
+
+Process : P3
+Arrival Time : 1
+Burst Time : 2
+Completion Time : 3
+
+TAT = CT - AT
+    = 3 - 1
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
+Process : P4
+Arrival Time : 2
+Burst Time : 17
+Completion Time : 23
+
+TAT = CT - AT
+    = 23 - 2
+    = 21
+WT = TAT - BT
+   = 21 - 17
+   = 4
+
+Process : P5
+Arrival Time : 3
+Burst Time : 3
+Completion Time : 6
+
+TAT = CT - AT
+    = 6 - 3
+    = 3
+WT = TAT - BT
+   = 3 - 3
+   = 0
+
 Interval yang benar-benar dicetak scheduler.c:
   P1: 0 -> 24
 Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
@@ -220,6 +540,154 @@ P10    7    1   2      18   19    12   11   11
 P11    8    2   1       8   10     2    0    0
 P12    9    4   3      33   37    28   24   24
 Rata-rata TAT / WT / RT: 14.25 / 11.17 / 10.42
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 4
+Completion Time : 24
+
+TAT = CT - AT
+    = 24 - 0
+    = 24
+WT = TAT - BT
+   = 24 - 4
+   = 20
+
+Process : P2
+Arrival Time : 0
+Burst Time : 3
+Completion Time : 12
+
+TAT = CT - AT
+    = 12 - 0
+    = 12
+WT = TAT - BT
+   = 12 - 3
+   = 9
+
+Process : P3
+Arrival Time : 0
+Burst Time : 2
+Completion Time : 2
+
+TAT = CT - AT
+    = 2 - 0
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
+Process : P4
+Arrival Time : 1
+Burst Time : 5
+Completion Time : 20
+
+TAT = CT - AT
+    = 20 - 1
+    = 19
+WT = TAT - BT
+   = 19 - 5
+   = 14
+
+Process : P5
+Arrival Time : 2
+Burst Time : 1
+Completion Time : 3
+
+TAT = CT - AT
+    = 3 - 2
+    = 1
+WT = TAT - BT
+   = 1 - 1
+   = 0
+
+Process : P6
+Arrival Time : 3
+Burst Time : 6
+Completion Time : 30
+
+TAT = CT - AT
+    = 30 - 3
+    = 27
+WT = TAT - BT
+   = 27 - 6
+   = 21
+
+Process : P7
+Arrival Time : 4
+Burst Time : 4
+Completion Time : 8
+
+TAT = CT - AT
+    = 8 - 4
+    = 4
+WT = TAT - BT
+   = 4 - 4
+   = 0
+
+Process : P8
+Arrival Time : 5
+Burst Time : 2
+Completion Time : 18
+
+TAT = CT - AT
+    = 18 - 5
+    = 13
+WT = TAT - BT
+   = 13 - 2
+   = 11
+
+Process : P9
+Arrival Time : 6
+Burst Time : 3
+Completion Time : 33
+
+TAT = CT - AT
+    = 33 - 6
+    = 27
+WT = TAT - BT
+   = 27 - 3
+   = 24
+
+Process : P10
+Arrival Time : 7
+Burst Time : 1
+Completion Time : 19
+
+TAT = CT - AT
+    = 19 - 7
+    = 12
+WT = TAT - BT
+   = 12 - 1
+   = 11
+
+Process : P11
+Arrival Time : 8
+Burst Time : 2
+Completion Time : 10
+
+TAT = CT - AT
+    = 10 - 8
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
+Process : P12
+Arrival Time : 9
+Burst Time : 4
+Completion Time : 37
+
+TAT = CT - AT
+    = 37 - 9
+    = 28
+WT = TAT - BT
+   = 28 - 4
+   = 24
+
 Interval yang benar-benar dicetak scheduler.c:
   P1: 0 -> 4
   P6: 4 -> 10
@@ -249,6 +717,70 @@ P3     0    1   1       2    3     3    2    2
 P4     0    1   1       3    4     4    3    3
 P5     0    1   1       4    5     5    4    4
 Rata-rata TAT / WT / RT: 3.00 / 2.00 / 2.00
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 1
+
+TAT = CT - AT
+    = 1 - 0
+    = 1
+WT = TAT - BT
+   = 1 - 1
+   = 0
+
+Process : P2
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 2
+
+TAT = CT - AT
+    = 2 - 0
+    = 2
+WT = TAT - BT
+   = 2 - 1
+   = 1
+
+Process : P3
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 3
+
+TAT = CT - AT
+    = 3 - 0
+    = 3
+WT = TAT - BT
+   = 3 - 1
+   = 2
+
+Process : P4
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 4
+
+TAT = CT - AT
+    = 4 - 0
+    = 4
+WT = TAT - BT
+   = 4 - 1
+   = 3
+
+Process : P5
+Arrival Time : 0
+Burst Time : 1
+Completion Time : 5
+
+TAT = CT - AT
+    = 5 - 0
+    = 5
+WT = TAT - BT
+   = 5 - 1
+   = 4
+
 Interval yang benar-benar dicetak scheduler.c:
   Tidak ada interval proses.
 Status verifikasi: BELUM LULUS MLQ; proses Q1/Q2 tidak dijalankan.
@@ -275,6 +807,70 @@ P3     6    1   3       6    7     1    0    0
 P4     6    4   3       7   11     5    1    1
 P5    15    2   3      15   17     2    0    0
 Rata-rata TAT / WT / RT: 3.00 / 0.60 / 0.60
+
+PERHITUNGAN PER PROSES (HASIL YANG DIHARAPKAN)
+CT berasal dari akhir interval terakhir proses pada Gantt di atas.
+
+Process : P1
+Arrival Time : 0
+Burst Time : 3
+Completion Time : 3
+
+TAT = CT - AT
+    = 3 - 0
+    = 3
+WT = TAT - BT
+   = 3 - 3
+   = 0
+
+Process : P2
+Arrival Time : 1
+Burst Time : 2
+Completion Time : 5
+
+TAT = CT - AT
+    = 5 - 1
+    = 4
+WT = TAT - BT
+   = 4 - 2
+   = 2
+
+Process : P3
+Arrival Time : 6
+Burst Time : 1
+Completion Time : 7
+
+TAT = CT - AT
+    = 7 - 6
+    = 1
+WT = TAT - BT
+   = 1 - 1
+   = 0
+
+Process : P4
+Arrival Time : 6
+Burst Time : 4
+Completion Time : 11
+
+TAT = CT - AT
+    = 11 - 6
+    = 5
+WT = TAT - BT
+   = 5 - 4
+   = 1
+
+Process : P5
+Arrival Time : 15
+Burst Time : 2
+Completion Time : 17
+
+TAT = CT - AT
+    = 17 - 15
+    = 2
+WT = TAT - BT
+   = 2 - 2
+   = 0
+
 Interval yang benar-benar dicetak scheduler.c:
   P1: 0 -> 3
   P2: 3 -> 5
