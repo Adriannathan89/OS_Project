@@ -5,7 +5,6 @@
 #include <limits.h>
 
 #define LINE_WIDTH 73
-#define INF 1000000000   // [TAMBAHAN] limit / quantum "tak terbatas" (Q1 tanpa queue atas, Q3 FCFS)
 
 struct process {
     int pid;
@@ -13,9 +12,6 @@ struct process {
     int burst_time;
     int queue;
     int remaining_time;
-    int first_start;       // [TAMBAHAN] -1 kalau belum pernah jalan (buat RT)
-    int completion_time;   // [TAMBAHAN] CT
-    int quantum_left;      // [TAMBAHAN] sisa quantum saat proses lagi jalan (Q3 FCFS: INF)
 };
 
 // use linked list
@@ -84,78 +80,54 @@ void print_process_queue(struct process *p[], struct context ctx, int n) {
     }
     printf("\n");
 }
-
 // Enqueue ke belakang antrean (FIFO) untuk Requeue Round Robin
 static int queue_push(struct queue *q, struct process *p) {
-    struct node *new_node = (struct node *)malloc(sizeof(struct node)); // check memory allocation for push_back
-    if (!new_node) return -1; // Memory allocation failed
+    struct node *n = (struct node *)malloc(sizeof(struct node));
+    if (!n) return -1;
 
-    new_node->process = p; // making new node for push back
-    new_node->next = NULL;
+    n->process = p;
+    n->next = NULL;
 
-    if (q->tail) q->tail->next = new_node; // push back
-    else q->head = new_node;               // queue was empty
-    q->tail = new_node;
-    return 0;
-}
-
-// [TAMBAHAN] Enqueue ke depan antrean, buat proses yang dipreempt queue atas
-static int queue_push_front(struct queue *q, struct process *p) {
-    struct node *new_node = (struct node *)malloc(sizeof(struct node));
-    if (!new_node) return -1; // Memory allocation failed
-
-    new_node->process = p;
-    new_node->next = q->head;
-    q->head = new_node;
-    if (!q->tail) q->tail = new_node; // queue was empty
+    if (q->tail == NULL) {
+        q->head = n;
+        q->tail = n;
+    } else {
+        q->tail->next = n;
+        q->tail = n;
+    }
     return 0;
 }
 
 
 static struct process* queue_pop(struct queue *q) {
-    if (q->head == NULL) return NULL; // empty queue
+    if (q->head == NULL) return NULL; // empty queue 
 
     struct node *temp = q->head; // accessing first node in queue
     struct process *p = temp->process; // first node's process
 
     q->head = temp->next; // erasing first node
-    if (q->head == NULL) q->tail = NULL;
+    if (q->head == NULL) q->tail = NULL; // queue jadi kosong
     free(temp); // freeing memory
 
     return p;
 }
 
-// [TAMBAHAN] Hasil satu tick
-#define RR_RUNNING  0   // proses masih jalan, lanjut tick berikutnya
-#define RR_DONE     1   // proses selesai
-#define RR_QUANTUM  2   // quantum habis -> caller push ke belakang queue
+// Fungsi Engine Round Robin yang reusable untuk Q1 & Q2
+int execute_rr_step(struct queue *q, int quantum, int *current_time) {
+    struct process *p = queue_pop(q); // taking first node
+    if (!p) return 0; // no queue left
 
-// Mulai jalanin proses di CPU. Quantum dihitung ulang dari awal
-// (proses yang baru dipilih atau yang balik setelah dipreempt).
-// Q3 (FCFS): kasih quantum = INF
-void rr_start(struct process *p, int quantum, int now) {
-    p->quantum_left = quantum;
-    if (p->first_start == -1) p->first_start = now; // start pertama, buat RT
-}
+    int exec_time = (p->remaining_time < quantum) ? p->remaining_time : quantum; // time allocate for the process
 
-// Fungsi Engine Round Robin per tick yang reusable untuk Q1 & Q2 (Q3 FCFS: quantum = INF)
-// Jalanin proses p selama 1 unit waktu. Interrupt/preemption TIDAK diurus di sini:
-// dispatcher ngecek queue atas di awal tiap tick sebelum manggil fungsi ini.
-// Kalau hasilnya DONE / QUANTUM, caller yang ngurus proses p (selesai / push ke belakang queue)
-int execute_rr_tick(struct process *p, int *current_time) {
-    p->remaining_time--; // sisa Burst Time
-    p->quantum_left--;   // sisa quantum
-    (*current_time)++;   // execute 1 tick
+    p->remaining_time -= exec_time; // sisa Burst Time
+    *current_time += exec_time; // execute
 
-    if (p->remaining_time == 0) {
-        p->completion_time = *current_time; // selesai -> TERMINATED
-        return RR_DONE;
-    }
+    // Logic Quantum Expiry & Requeue ke belakang
+    if (p->remaining_time > 0) {
+        queue_push(q, p); // push back process
+    } 
 
-    // Logic Quantum Expiry
-    if (p->quantum_left == 0) return RR_QUANTUM; // kalo quantum habis, masih ada remanining time
-
-    return RR_RUNNING; //quantum masih ada, remaining time masih ada
+    return exec_time;
 }
 
 static void simulate_fcfs(struct queue *q) {
@@ -254,7 +226,7 @@ int main(void) {
     }
     int allocated = 0;
 
-    // Allocate memory for queue process
+    // Allocate memory for queue processes
     struct queue queue_list[3] = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}}; // Initialize queues for Q1, Q2, Q3
 
     struct context ctx = {quantum_1, quantum_2};
@@ -294,9 +266,6 @@ int main(void) {
         p[i]->remaining_time = bt; // [TAMBAHAN] Inisialisasi sisa BT
         p[i]->queue = queue_choice; // initial queue
         p[i]->remaining_time = bt; // initial value
-        p[i]->first_start = -1; // [TAMBAHAN] belum pernah jalan
-        p[i]->completion_time = 0; // [TAMBAHAN]
-        p[i]->quantum_left = 0; // [TAMBAHAN]
 
         // Add process to the appropriate queue
         if(queue_push(&queue_list[queue_choice - 1], p[i]) != 0) {
