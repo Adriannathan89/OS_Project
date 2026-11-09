@@ -1,12 +1,37 @@
 /* Bagian Hisyam - menu utama dan integrasi semua modul. */
+#include <stdio.h>
 #include "banner.h"
 #include "malloc_module.h"
 #include "mmap_module.h"
-#include "variant10.h"
+// #include "variant8.h"
 
 int main(void)
 {
     print_banner();
-    /* TODO: Menu 1 malloc, 2 mmap, 3 Variant 10, 4 Exit. */
+
+    while (1) {
+        printf("\n=== Kelompok B08 - Tugas Memori ===\n");
+        printf("1. Allocate dengan malloc/free\n");
+        printf("2. Allocate dengan mmap/munmap\n");
+        printf("3. Eksekusi fitur variasi kelompok\n");
+        printf("4. Exit\n");
+        printf("Input: ");
+        
+        int choice;
+        scanf("%d", &choice);
+
+        if (choice == 1) {
+            // TODO: Panggil fungsi allocate memory dengan malloc/free
+        } else if (choice == 2) {
+            // TODO: Panggil fungsi allocate memory dengan mmap/munmap
+        } else if (choice == 3) {
+            // TODO: Panggil fitur variasi kelompok
+        } else if (choice == 4) {
+            break;
+        } else {
+            puts("Input hanya berupa integer 1-4.");
+        }
+    }
+    
     return 0;
 }
