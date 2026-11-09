@@ -166,6 +166,7 @@ static int sum_with_mmap(const char *path, Result *result){
         munmap(data, FILE_SIZE_BYTES);
         close(fd);
         return -1;
+    }
     result->total_sum = sum;
     result->elapsed_seconds = (double)(end - start) / CLOCKS_PER_SEC;
     result->vmrss_delta_kb = rss_after - rss_before;
