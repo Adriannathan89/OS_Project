@@ -4,9 +4,9 @@
 CC = gcc
 
 SOURCES = main.c banner.c malloc_module.c mmap_module.c \
-	memory_monitor.c logging.c variant10.c
+	memory_monitor.c logging.c variant8.c
 HEADERS = banner.h malloc_module.h mmap_module.h memory_monitor.h \
-	logging.h variant10.h
+	logging.h variant8.h
 
 .PHONY: all static dynamic clean
 
