@@ -15,7 +15,7 @@ void run_mmap_experiment(void) {
         return;
     }
 
-    printf("VmSize Before: %lu KB | VmRSS Before: %lu KB", before.vm_size_kb, before.vm_rss_kb);
+    printf("VmSize Before: %lu KB | VmRSS Before: %lu KB\n", before.vm_size_kb, before.vm_rss_kb);
 
     int n_allocation;
     printf("How many integers to allocate: ");
@@ -32,7 +32,7 @@ void run_mmap_experiment(void) {
     }
 
     printf("Starting memory address: %p\n", (void *)ptr);
-    for (long i=0; i<n_allocation; i++) {
+    for (long i=n_allocation - 1; i>=0; i--) {
         ptr[i] = i + 1;
     }
     
@@ -40,8 +40,8 @@ void run_mmap_experiment(void) {
     
     int count = n_allocation < 10 ? n_allocation : 10;
 
-    for (long i=count -1; i>=0; i--) {
-        printf("%ld\n", ptr[i]);
+    for (long i=0; i<count; i++) {
+        printf("%ld\n", ptr[n_allocation - i - 1]);
     }
 
     if (read_memory_metrics(&after) != 0) {
@@ -50,7 +50,7 @@ void run_mmap_experiment(void) {
         return;
     }
     
-    printf("VmSize After: %lu KB | VmRSS After: %lu KB\n", after.vm_size_kb, after.vm_rss_kb);
+    printf("\nVmSize After: %lu KB | VmRSS After: %lu KB\n", after.vm_size_kb, after.vm_rss_kb);
 
     char record[1024];
     int used = snprintf(record, sizeof(record),
@@ -60,12 +60,12 @@ void run_mmap_experiment(void) {
         "Printing the first 10 values in reverse order:\n",
         n_allocation, (void *)ptr, before.vm_size_kb, before.vm_rss_kb);
 
-    for (long i=count -1; i>=0; i--) {
-        used += snprintf(record + used, sizeof(record) - used, "%ld\n", ptr[i]);
+    for (long i=0; i<count; i++) {
+        used += snprintf(record + used, sizeof(record) - used, "%ld\n", ptr[n_allocation - i - 1]);
     }
 
     snprintf(record + used, sizeof(record) - used,
-        "VmSize After: %lu KB | VmRSS After: %lu KB",
+        "\nVmSize After: %lu KB | VmRSS After: %lu KB",
         after.vm_size_kb, after.vm_rss_kb);
 
     write_logs("mmap", record);
