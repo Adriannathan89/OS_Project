@@ -1,13 +1,24 @@
-# Bagian Adrian - build static/dynamic, clean, dan verifikasi linking (ls -lh/ldd).
+# Bagian Adrian - build static/dynamic dan clean.
+CC = gcc
+
+SOURCES = main.c banner.c malloc_module.c mmap_module.c \
+	memory_monitor.c logging.c variant10.c
+HEADERS = banner.h malloc_module.h mmap_module.h memory_monitor.h \
+	logging.h variant10.h
+
 .PHONY: all static dynamic clean
 
 all: static dynamic
 
-static:
-	gcc -static *.c -o memory_static
+static: memory_static
 
-dynamic:
-	gcc *.c -o memory_dynamic
+dynamic: memory_dynamic
+
+memory_static: $(SOURCES) $(HEADERS)
+	$(CC) -static $(SOURCES) -o $@
+
+memory_dynamic: $(SOURCES) $(HEADERS)
+	$(CC) $(SOURCES) -o $@
 
 clean:
 	rm -f memory_static memory_dynamic
