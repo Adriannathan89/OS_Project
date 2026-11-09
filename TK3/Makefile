@@ -1,4 +1,6 @@
 # Bagian Adrian - build static/dynamic dan clean.
+# TODO: Pastikan SOURCES/HEADERS mencakup variant8.c/variant8.h serta semua
+# modul yang dipakai. Pertahankan target kompilasi statis (-static) dan dinamis.
 CC = gcc
 
 SOURCES = main.c banner.c malloc_module.c mmap_module.c \

@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -295,11 +296,17 @@ static void print_gantt_chart(const struct mlq_result *result) {
     print_line('=');
     printf("CPU EXECUTION TIMELINE (GANTT CHART)\n");
     print_line('=');
+    int addition_time = 0;
     while (segment) {
         if (segment->pid == 0)
-            printf("| IDLE (%lld-%lld) ", segment->start, segment->end);
-        else
-            printf("| P%d (%lld-%lld) ", segment->pid, segment->start, segment->end);
+            printf("| IDLE (%lld-%lld) ", segment->start+addition_time, segment->end+addition_time);
+        else {
+            printf("| P%d (%lld-%lld) ", segment->pid, segment->start+addition_time, segment->end+addition_time);
+            if (segment->next != NULL) {
+                printf("| CS (%lld-%lld) ", (segment->end)+addition_time, (segment->end)+addition_time+1);
+                addition_time++;
+            }
+        }
         segment = segment->next;
     }
     printf("|\n\n");
@@ -404,6 +411,7 @@ static void print_context_switch_information(const struct mlq_result *result) {
     printf("CONTEXT SWITCH INFORMATION\n");
     print_line('=');
     printf("Total Context Switch : %d\n", total);
+    printf("Total Waktu Terbuang : %d\n", total);
     printf("\n");
 }
 

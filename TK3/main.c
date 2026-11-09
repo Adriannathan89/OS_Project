@@ -3,12 +3,11 @@
 #include "banner.h"
 #include "malloc_module.h"
 #include "mmap_module.h"
-// #include "variant8.h"
+#include "variant8.h"
 
 int main(void)
 {
     print_banner();
-
     while (1) {
         printf("\n=== Kelompok B08 - Tugas Memori ===\n");
         printf("1. Allocate dengan malloc/free\n");
@@ -25,13 +24,12 @@ int main(void)
         } else if (choice == 2) {
             // TODO: Panggil fungsi allocate memory dengan mmap/munmap
         } else if (choice == 3) {
-            // TODO: Panggil fitur variasi kelompok
+            run_variant8();
         } else if (choice == 4) {
             break;
         } else {
             puts("Input hanya berupa integer 1-4.");
         }
     }
-    
     return 0;
 }
