@@ -2,12 +2,8 @@
 #include "malloc_module.h"
 #include "memory_monitor.h"
 #include "logging.h"
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
 void run_malloc_experiment(void)
 {
