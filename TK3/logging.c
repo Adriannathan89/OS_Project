@@ -16,7 +16,7 @@ void get_local_timestamp(char *buffer, size_t buffer_size)
 
 void make_logger_file_name(char *buffer, size_t buffer_size, const char *timestamp, const char *method, const char *sys_or_std)
 {
-    snprintf(buffer, buffer_size, "08-%s_%s-%s.txt", method, sys_or_std, timestamp);
+    snprintf(buffer, buffer_size, "B08-%s_%s-%s.txt", method, sys_or_std, timestamp);
 }
 
 void std_logger(const char *record, const char *file_name) {
