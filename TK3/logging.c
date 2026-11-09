@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 
 void get_local_timestamp(char *buffer, size_t buffer_size)
 {
