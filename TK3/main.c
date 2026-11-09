@@ -20,9 +20,9 @@ int main(void)
         scanf("%d", &choice);
 
         if (choice == 1) {
-            // TODO: Panggil fungsi allocate memory dengan malloc/free
+            run_malloc_experiment();
         } else if (choice == 2) {
-            // TODO: Panggil fungsi allocate memory dengan mmap/munmap
+            run_mmap_experiment();
         } else if (choice == 3) {
             run_variant8();
         } else if (choice == 4) {
